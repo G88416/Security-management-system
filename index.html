@@ -356,6 +356,146 @@
       margin-bottom: 0.25rem;
     }
 
+    .toolbar-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      align-items: center;
+    }
+
+    .table-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin: 1rem 0;
+    }
+
+    .search-input,
+    .filter-select {
+      min-width: 180px;
+      padding: 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .data-list {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .data-row {
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 0.95rem;
+      background: var(--bg);
+    }
+
+    .data-row h4 {
+      margin-bottom: 0.3rem;
+    }
+
+    .data-row small {
+      display: block;
+      color: var(--text-light);
+    }
+
+    .action-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.85rem;
+    }
+
+    .relationship-grid {
+      display: grid;
+      gap: 0.85rem;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      margin-top: 1rem;
+    }
+
+    .relationship-card {
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 0.9rem;
+      background: var(--bg);
+    }
+
+    .relationship-card ul {
+      margin-top: 0.75rem;
+      padding-left: 1rem;
+      color: var(--text-light);
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .relationship-card li strong {
+      color: var(--text);
+    }
+
+    .empty-state {
+      border: 1px dashed var(--border);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      color: var(--text-light);
+      background: var(--bg);
+    }
+
+    .proof-card {
+      margin-top: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      background: var(--bg);
+    }
+
+    .proof-card img {
+      width: 100%;
+      max-height: 220px;
+      object-fit: cover;
+      border-radius: 0.65rem;
+      margin-top: 0.85rem;
+      border: 1px solid var(--border);
+    }
+
+    .modal-overlay[hidden] {
+      display: none;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-card {
+      width: min(720px, 100%);
+      max-height: calc(100vh - 2rem);
+      overflow-y: auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1.25rem;
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+    }
+
+    .modal-card h3 {
+      margin-bottom: 0.35rem;
+    }
+
+    .modal-card p {
+      color: var(--text-light);
+      margin-bottom: 1rem;
+    }
+
     footer {
       text-align: center;
       margin-top: 3rem;
@@ -394,8 +534,26 @@
     <div class="card">
       <h2 style="margin-bottom:1rem;">Employee / Guard Management</h2>
       <div class="action-row">
-        <button id="addGuardBtn" type="button" class="btn">+ Add New Guard</button>
-        <span id="guardActionStatus" class="inline-feedback">Select a guard to review compliance, contact details, and uploaded documents.</span>
+        <div class="toolbar-group">
+          <button id="addGuardBtn" type="button" class="btn">+ Add New Guard</button>
+          <button id="editGuardBtn" type="button" class="btn btn-small">Edit Selected Guard</button>
+          <button id="deleteGuardBtn" type="button" class="btn btn-small btn-danger">Delete Selected Guard</button>
+        </div>
+        <span id="guardActionStatus" class="inline-feedback">Select a guard to review compliance, contact details, uploaded documents, and linked work.</span>
+      </div>
+
+      <div class="table-toolbar">
+        <div class="toolbar-group">
+          <input id="guardSearchInput" class="search-input" type="search" placeholder="Search guards, sites, skills...">
+          <select id="guardStatusFilter" class="filter-select">
+            <option value="all">All guard statuses</option>
+            <option>On Duty</option>
+            <option>Patrolling</option>
+            <option>Available</option>
+            <option>Off Duty</option>
+            <option>Break</option>
+          </select>
+        </div>
       </div>
 
       <div class="grid-2" style="margin-top:1.2rem; align-items:start;">
@@ -438,14 +596,31 @@
       <p>Full weekly scheduling with drag-and-drop shifts, publishing actions, and quick roster updates.</p>
 
       <div class="action-row" style="margin:1.5rem 0 0.75rem;">
-        <div>
+        <div class="toolbar-group">
+          <button id="createRosterBtn" class="btn">+ Create Roster Shift</button>
           <button id="autoScheduleBtn" class="btn">Auto-schedule Relief Shift</button>
           <button id="publishRosterBtn" class="btn" style="margin-left:0.6rem;">Publish Roster</button>
         </div>
         <span id="scheduleFeedback" class="inline-feedback">Week view opens when you switch to Scheduling.</span>
       </div>
 
+      <div class="table-toolbar">
+        <div class="toolbar-group">
+          <input id="rosterSearchInput" class="search-input" type="search" placeholder="Search roster by guard, site, or shift...">
+          <select id="rosterSiteFilter" class="filter-select">
+            <option value="all">All roster sites</option>
+          </select>
+        </div>
+      </div>
+
       <div id="fullCalendar" class="calendar-shell"></div>
+      <div style="margin-top:1rem;">
+        <div class="action-row">
+          <strong>Editable roster list</strong>
+          <span class="inline-feedback">Use the list below to create, edit, delete, and filter shift assignments.</span>
+        </div>
+        <div id="rosterList" class="data-list" style="margin-top:1rem;"></div>
+      </div>
     </div>
   </div>
 
@@ -467,6 +642,10 @@
           <button id="panicBtn" type="button" class="btn btn-danger" style="margin-left:0.6rem;">Panic / SOS</button>
         </div>
         <span id="attendanceStatus" class="inline-feedback">Clock-in and SOS actions are available for the selected officer.</span>
+      </div>
+      <div id="attendanceProof" class="proof-card">
+        <strong>Latest clock-in proof</strong>
+        <small>No active attendance proof captured yet.</small>
       </div>
     </div>
   </div>
@@ -533,8 +712,23 @@
 
       <div style="margin-top:1.5rem;">
         <div class="action-row">
-          <strong>Live incident queue</strong>
+          <div class="toolbar-group">
+            <strong>Live incident queue</strong>
+            <button id="createIncidentBtn" type="button" class="btn btn-small">+ Modal Incident Form</button>
+          </div>
           <span id="incidentSummary" class="inline-feedback">Track open, escalated, and resolved issues in one place.</span>
+        </div>
+        <div class="table-toolbar">
+          <div class="toolbar-group">
+            <input id="incidentSearchInput" class="search-input" type="search" placeholder="Search incidents by ID, reporter, type, or location...">
+            <select id="incidentStatusFilter" class="filter-select">
+              <option value="all">All incident statuses</option>
+              <option>Open</option>
+              <option>Investigating</option>
+              <option>Escalated</option>
+              <option>Resolved</option>
+            </select>
+          </div>
         </div>
         <div id="incidentList" class="incident-list" style="margin-top:1rem;"></div>
       </div>
@@ -546,14 +740,18 @@
     <div class="card">
       <h2>Client / Site Management</h2>
       <p>Site profiles, post orders, and client/site manager reporting with view-only access for assigned locations.</p>
-      <ul style="margin:1rem 0; padding-left:1.2rem;">
-        <li>Sandton Mall – 8 guards • Post orders v3.1</li>
-        <li>Menlyn Corporate Park – 5 guards • SLA compliance 98%</li>
-      </ul>
       <div class="action-row">
-        <button id="addSiteBtn" type="button" class="btn">+ Add New Site</button>
+        <div class="toolbar-group">
+          <button id="addSiteBtn" type="button" class="btn">+ Add New Site</button>
+        </div>
         <span id="siteActionStatus" class="inline-feedback">Add a new client site to the active portfolio.</span>
       </div>
+      <div class="table-toolbar">
+        <div class="toolbar-group">
+          <input id="siteSearchInput" class="search-input" type="search" placeholder="Search sites, post orders, or client notes...">
+        </div>
+      </div>
+      <div id="siteList" class="data-list" style="margin-top:1rem;"></div>
     </div>
   </div>
 
@@ -712,6 +910,68 @@
     SecureGuard Management System • Prototype • Johannesburg • March 2026
   </footer>
 
+  <div id="entityModal" class="modal-overlay" hidden>
+    <div class="modal-card">
+      <div class="action-row">
+        <div>
+          <h3 id="entityModalTitle">Modal form</h3>
+          <p id="entityModalSubtitle">Create and edit operational records.</p>
+        </div>
+        <button id="closeEntityModalBtn" type="button" class="btn btn-small btn-danger">Close</button>
+      </div>
+      <form id="entityModalForm">
+        <div id="entityModalFields" class="grid-2"></div>
+        <div class="action-row" style="margin-top:1rem;">
+          <span id="entityModalStatus" class="inline-feedback">Complete the form and save your changes.</span>
+          <div class="toolbar-group">
+            <button type="button" id="cancelEntityModalBtn" class="btn btn-small" style="background:var(--muted); color:var(--text); border:1px solid var(--border);">Cancel</button>
+            <button type="submit" class="btn btn-success">Save Changes</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="clockInModal" class="modal-overlay" hidden>
+    <div class="modal-card">
+      <div class="action-row">
+        <div>
+          <h3>GPS + Photo Clock-in</h3>
+          <p>Capture the guard's current GPS position and a camera photo before clock-in is recorded.</p>
+        </div>
+        <button id="closeClockInModalBtn" type="button" class="btn btn-small btn-danger">Close</button>
+      </div>
+      <form id="clockInForm">
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="clockInGuardName">Guard</label>
+            <input id="clockInGuardName" type="text" readonly>
+          </div>
+          <div class="form-group">
+            <label for="clockInTimestamp">Timestamp</label>
+            <input id="clockInTimestamp" type="text" readonly>
+          </div>
+          <div class="form-group">
+            <label for="clockInGpsStatus">GPS status</label>
+            <textarea id="clockInGpsStatus" rows="4" readonly></textarea>
+          </div>
+          <div class="form-group">
+            <label for="clockInPhotoInput">Clock-in photo</label>
+            <input id="clockInPhotoInput" type="file" accept="image/*" capture="environment">
+            <small id="clockInPhotoStatus" style="display:block; margin-top:0.4rem; color:var(--text-light);">No photo captured yet.</small>
+          </div>
+        </div>
+        <div class="action-row" style="margin-top:1rem;">
+          <span id="clockInModalStatus" class="inline-feedback">Allow GPS access and capture a photo to continue.</span>
+          <div class="toolbar-group">
+            <button type="button" id="refreshGpsBtn" class="btn btn-small">Refresh GPS</button>
+            <button type="submit" class="btn btn-success">Confirm Clock-in</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -752,9 +1012,9 @@
     ];
 
     const sitePipeline = [
-      'Rosebank Banking Plaza – 4 guards • Post orders draft in review',
-      'Waterfall Distribution Hub – 6 guards • Access plan awaiting approval',
-      'Pretoria Civic Centre – 3 guards • Client onboarding in progress'
+      { id: 'SITE-ROSEBANK', name: 'Rosebank Banking Plaza', guardCount: 4, postOrders: 'Post orders draft in review', client: 'Rosebank Banking Plaza', notes: 'Client onboarding in progress', sla: 'Pending' },
+      { id: 'SITE-WATERFALL', name: 'Waterfall Distribution Hub', guardCount: 6, postOrders: 'Access plan awaiting approval', client: 'Waterfall Distribution Hub', notes: 'Warehouse escorting and perimeter coverage', sla: 'Pending' },
+      { id: 'SITE-PRETORIA', name: 'Pretoria Civic Centre', guardCount: 3, postOrders: 'Client onboarding in progress', client: 'Pretoria Civic Centre', notes: 'Government building access control', sla: 'Pending' }
     ];
 
     const reliefShiftTemplates = [
@@ -852,8 +1112,8 @@
     ];
 
     let siteData = [
-      'Sandton Mall – 8 guards • Post orders v3.1',
-      'Menlyn Corporate Park – 5 guards • SLA compliance 98%'
+      { id: 'SITE-SANDTON', name: 'Sandton Mall', guardCount: 8, postOrders: 'Post orders v3.1', client: 'Sandton Mall Management', notes: 'Retail command centre and mall patrol coverage', sla: '98%' },
+      { id: 'SITE-MENLYN', name: 'Menlyn Corporate Park', guardCount: 5, postOrders: 'SLA compliance 98%', client: 'Menlyn Corporate Park', notes: 'Office park reception and parking patrols', sla: '98%' }
     ];
 
     let selectedGuardId = guardData[0].id;
@@ -868,6 +1128,10 @@
     let activityFeed = [];
     let firebaseDb = null;
     let firebaseSyncEnabled = false;
+    let entityModalState = { type: '', mode: 'create', id: '' };
+    let pendingClockInGuardId = '';
+    let pendingClockInGps = null;
+    let pendingClockInPhotoPreview = '';
 
     const localStateStorageKey = 'secureguard-dashboard-state-v2';
     const firebaseConfigStorageKey = 'secureguard-firebase-config-v1';
@@ -945,6 +1209,73 @@
       return `${guard.name} – ${guard.site}`;
     }
 
+    function createId(prefix) {
+      return `${prefix}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    }
+
+    function formatSiteSummary(site) {
+      return `${site.name} – ${site.guardCount} guards • ${site.postOrders}`;
+    }
+
+    function normalizeSite(site, index = 0) {
+      if (site && typeof site === 'object' && !Array.isArray(site)) {
+        return {
+          id: String(site.id || createId('SITE')),
+          name: String(site.name || `Site ${index + 1}`),
+          guardCount: Number(site.guardCount || 0),
+          postOrders: String(site.postOrders || site.summary || 'Post orders pending'),
+          client: String(site.client || site.name || `Site ${index + 1}`),
+          notes: String(site.notes || ''),
+          sla: String(site.sla || 'Pending')
+        };
+      }
+
+      const value = String(site || '').trim();
+      const [namePart, detailPart = 'Post orders pending'] = value.split(' – ');
+      const guardMatch = detailPart.match(/(\d+)\s+guards?/i);
+      return {
+        id: createId('SITE'),
+        name: namePart || `Site ${index + 1}`,
+        guardCount: Number(guardMatch?.[1] || 0),
+        postOrders: detailPart,
+        client: namePart || `Site ${index + 1}`,
+        notes: '',
+        sla: detailPart.match(/(\d+%)/)?.[1] || 'Pending'
+      };
+    }
+
+    function buildShiftTitle(shift) {
+      if (shift.title && shift.title.trim()) {
+        return shift.title.trim();
+      }
+
+      const assignedGuard = guardData.find(guard => guard.id === shift.guardId);
+      const guardLabel = assignedGuard ? assignedGuard.name.split(' ')[0] : 'Open Shift';
+      return `${guardLabel} • ${shift.siteName || 'Unassigned Site'}`;
+    }
+
+    function normalizeScheduleEvent(event, index = 0) {
+      const normalizedEvent = {
+        ...event,
+        id: String(event?.id || createId('SHIFT')),
+        guardId: String(event?.guardId || ''),
+        siteName: String(event?.siteName || ''),
+        role: String(event?.role || ''),
+        notes: String(event?.notes || ''),
+        color: event?.color || undefined,
+        start: new Date(event?.start || new Date()),
+        end: new Date(event?.end || new Date(Date.now() + 60 * 60 * 1000))
+      };
+      normalizedEvent.title = buildShiftTitle({ ...normalizedEvent, title: event?.title || '' }) || `Shift ${index + 1}`;
+      return normalizedEvent;
+    }
+
+    function sharesLocationKeyword(leftValue, rightValue) {
+      const leftTokens = String(leftValue || '').toLowerCase().split(/[^a-z0-9]+/).filter(token => token.length > 3);
+      const rightTokens = new Set(String(rightValue || '').toLowerCase().split(/[^a-z0-9]+/).filter(token => token.length > 3));
+      return leftTokens.some(token => rightTokens.has(token));
+    }
+
     function cloneGuard(guard) {
       return {
         ...guard,
@@ -957,6 +1288,74 @@
       return guardData.find(entry => entry.id === selectedGuardId) || guardData[0];
     }
 
+    function getSelectedAttendanceGuard() {
+      const selectedOfficer = document.getElementById('attendanceGuardSelect')?.value;
+      return guardData.find(guard => buildAttendanceLabel(guard) === selectedOfficer) || guardData[0];
+    }
+
+    function getFilteredGuards() {
+      const searchValue = document.getElementById('guardSearchInput')?.value.trim().toLowerCase() || '';
+      const statusValue = document.getElementById('guardStatusFilter')?.value || 'all';
+      return guardData.filter(guard => {
+        const matchesSearch = !searchValue || [
+          guard.name,
+          guard.id,
+          guard.site,
+          guard.certifications,
+          guard.contact,
+          ...guard.skills
+        ].join(' ').toLowerCase().includes(searchValue);
+        const matchesStatus = statusValue === 'all' || guard.status === statusValue;
+        return matchesSearch && matchesStatus;
+      });
+    }
+
+    function getFilteredSites() {
+      const searchValue = document.getElementById('siteSearchInput')?.value.trim().toLowerCase() || '';
+      return siteData.filter(site => !searchValue || [
+        site.name,
+        site.postOrders,
+        site.client,
+        site.notes,
+        site.sla
+      ].join(' ').toLowerCase().includes(searchValue));
+    }
+
+    function getFilteredRosterEvents() {
+      const searchValue = document.getElementById('rosterSearchInput')?.value.trim().toLowerCase() || '';
+      const siteValue = document.getElementById('rosterSiteFilter')?.value || 'all';
+      return [...scheduleEvents]
+        .sort((left, right) => new Date(left.start) - new Date(right.start))
+        .filter(event => {
+          const matchesSearch = !searchValue || [
+            event.title,
+            event.siteName,
+            event.role,
+            event.notes,
+            guardData.find(guard => guard.id === event.guardId)?.name || ''
+          ].join(' ').toLowerCase().includes(searchValue);
+          const matchesSite = siteValue === 'all' || event.siteName === siteValue;
+          return matchesSearch && matchesSite;
+        });
+    }
+
+    function getFilteredIncidents() {
+      const searchValue = document.getElementById('incidentSearchInput')?.value.trim().toLowerCase() || '';
+      const statusValue = document.getElementById('incidentStatusFilter')?.value || 'all';
+      return incidentData.filter(incident => {
+        const matchesSearch = !searchValue || [
+          incident.id,
+          incident.type,
+          incident.location,
+          incident.reporter,
+          incident.description,
+          incident.attachment
+        ].join(' ').toLowerCase().includes(searchValue);
+        const matchesStatus = statusValue === 'all' || incident.status === statusValue;
+        return matchesSearch && matchesStatus;
+      });
+    }
+
     function renderAttendanceOptions() {
       const select = document.getElementById('attendanceGuardSelect');
       const previousValue = select.value;
@@ -965,10 +1364,77 @@
       if (guardData.some(guard => buildAttendanceLabel(guard) === previousValue)) {
         select.value = previousValue;
       }
+
+      if (!select.value && guardData[0]) {
+        select.value = buildAttendanceLabel(guardData[0]);
+      }
+    }
+
+    function renderAttendancePanel() {
+      const selectedGuard = getSelectedAttendanceGuard();
+      const session = selectedGuard ? attendanceSessions[selectedGuard.id] : null;
+      const proofContainer = document.getElementById('attendanceProof');
+      const clockInButton = document.getElementById('clockInBtn');
+      clockInButton.textContent = session?.clockedIn ? 'Clock Out' : 'Clock In (GPS + Photo)';
+
+      if (!selectedGuard || !session) {
+        proofContainer.innerHTML = '<strong>Latest clock-in proof</strong><small>No active attendance proof captured yet.</small>';
+        return;
+      }
+
+      const gpsLabel = session.gps?.label || 'GPS not captured';
+      proofContainer.innerHTML = `
+        <strong>Latest clock-in proof</strong>
+        <small>${escapeHtml(selectedGuard.name)} • ${escapeHtml(session.clockedIn ? 'Currently on shift' : `Last action at ${session.lastActionTime || 'Unknown time'}`)}</small>
+        <div class="meta-list" style="margin-top:0.75rem;">
+          <div><strong>Clock-in time:</strong> ${escapeHtml(session.clockInTime || 'Not yet recorded')}</div>
+          <div><strong>Clock-out time:</strong> ${escapeHtml(session.clockOutTime || 'Still clocked in')}</div>
+          <div><strong>GPS:</strong> ${escapeHtml(gpsLabel)}</div>
+          <div><strong>Photo:</strong> ${escapeHtml(session.photoName || 'No photo captured')}</div>
+        </div>
+        ${session.photoPreview ? `<img src="${session.photoPreview}" alt="Clock-in proof for ${escapeHtml(selectedGuard.name)}">` : ''}
+      `;
     }
 
     function renderSitesList() {
-      document.querySelector('#sites ul').innerHTML = siteData.map(site => `<li>${escapeHtml(site)}</li>`).join('');
+      const siteList = document.getElementById('siteList');
+      const filteredSites = getFilteredSites();
+
+      siteList.innerHTML = filteredSites.length ? filteredSites.map(site => {
+        const assignedGuards = guardData.filter(guard => sharesLocationKeyword(guard.site, site.name));
+        const linkedShifts = scheduleEvents.filter(event => sharesLocationKeyword(event.siteName, site.name));
+        const linkedIncidents = incidentData.filter(incident => sharesLocationKeyword(incident.location, site.name));
+        return `
+          <div class="data-row">
+            <div class="action-row">
+              <div>
+                <h4>${escapeHtml(site.name)}</h4>
+                <small>${escapeHtml(site.client)} • ${escapeHtml(site.guardCount)} planned guard(s) • SLA ${escapeHtml(site.sla)}</small>
+              </div>
+              <span class="status status-patrol">${escapeHtml(site.postOrders)}</span>
+            </div>
+            <div class="meta-list">
+              <div><strong>Post orders:</strong> ${escapeHtml(site.postOrders)}</div>
+              <div><strong>Notes:</strong> ${escapeHtml(site.notes || 'No additional site notes')}</div>
+              <div><strong>Linked guards:</strong> ${escapeHtml(assignedGuards.length ? assignedGuards.map(guard => guard.name).join(', ') : 'No linked guards yet')}</div>
+              <div><strong>Linked shifts:</strong> ${escapeHtml(linkedShifts.length ? `${linkedShifts.length} scheduled shift(s)` : 'No roster shifts linked yet')}</div>
+              <div><strong>Linked incidents:</strong> ${escapeHtml(linkedIncidents.length ? `${linkedIncidents.length} incident(s)` : 'No incidents linked yet')}</div>
+            </div>
+            <div class="action-buttons">
+              <button type="button" class="btn btn-small site-edit" data-site-id="${escapeHtml(site.id)}">Edit</button>
+              <button type="button" class="btn btn-small btn-danger site-delete" data-site-id="${escapeHtml(site.id)}">Delete</button>
+            </div>
+          </div>
+        `;
+      }).join('') : '<div class="empty-state">No sites match the current search.</div>';
+
+      siteList.querySelectorAll('.site-edit').forEach(button => {
+        button.addEventListener('click', () => openEntityModal('site', 'edit', button.dataset.siteId));
+      });
+
+      siteList.querySelectorAll('.site-delete').forEach(button => {
+        button.addEventListener('click', () => deleteSite(button.dataset.siteId));
+      });
     }
 
     function renderActivityFeed() {
@@ -1029,14 +1495,15 @@
 
     function renderGuardDirectory() {
       const directory = document.getElementById('guardDirectory');
-      directory.innerHTML = guardData.map(guard => `
+      const filteredGuards = getFilteredGuards();
+      directory.innerHTML = filteredGuards.length ? filteredGuards.map(guard => `
         <button type="button" class="card guard-card ${guard.id === selectedGuardId ? 'active' : ''}" data-guard-id="${guard.id}">
           <strong>${escapeHtml(guard.name)}</strong><br>
           ${escapeHtml(guard.id)} • ${escapeHtml(guard.pay)}<br>
           Certifications: ${escapeHtml(guard.certifications)} (expires ${escapeHtml(guard.certificationExpiry)})<br>
           <span class="status ${getGuardStatusClass(guard.status)}">${escapeHtml(guard.status)} – ${escapeHtml(guard.site)}</span>
         </button>
-      `).join('');
+      `).join('') : '<div class="empty-state">No guards match the current search or status filter.</div>';
 
       directory.querySelectorAll('[data-guard-id]').forEach(card => {
         card.addEventListener('click', () => {
@@ -1049,9 +1516,15 @@
 
     function renderGuardProfile() {
       const guard = getSelectedGuard();
+      if (!guard) {
+        document.getElementById('guardProfile').innerHTML = '<div class="empty-state">Add a guard to view profile details.</div>';
+        return;
+      }
       const verifiedDocuments = guard.documents.filter(document => document.state === 'Verified').length;
       const missingDocuments = requiredDocumentTypes.filter(type => !guard.documents.some(document => document.type === type));
       const attendanceRecord = attendanceSessions[guard.id];
+      const relatedShifts = scheduleEvents.filter(event => event.guardId === guard.id);
+      const relatedIncidents = incidentData.filter(incident => incident.guardId === guard.id || incident.reporter === guard.name);
       const attendanceLabel = attendanceRecord?.clockedIn
         ? `Clocked in at ${escapeHtml(attendanceRecord.clockInTime || attendanceRecord.lastActionTime || 'Unknown time')}`
         : attendanceRecord?.clockOutTime
@@ -1067,12 +1540,17 @@
           </div>
           <span class="status ${getGuardStatusClass(guard.status)}">${escapeHtml(guard.status)}</span>
         </div>
+        <div class="action-buttons">
+          <button id="profileEditGuardBtn" type="button" class="btn btn-small">Edit Guard</button>
+          <button id="profileDeleteGuardBtn" type="button" class="btn btn-small btn-danger">Delete Guard</button>
+        </div>
         <div class="meta-list">
           <div><strong>Primary site:</strong> ${escapeHtml(guard.site)}</div>
           <div><strong>Current / next shift:</strong> ${escapeHtml(guard.shift)}</div>
           <div><strong>Contact:</strong> ${escapeHtml(guard.contact)}</div>
           <div><strong>Compliance:</strong> ${verifiedDocuments}/${guard.documents.length} documents verified</div>
           <div><strong>Attendance:</strong> ${attendanceLabel}</div>
+          <div><strong>GPS proof:</strong> ${escapeHtml(attendanceRecord?.gps?.label || 'No GPS clock-in proof yet')}</div>
           <div><strong>Missing docs:</strong> ${escapeHtml(missingDocuments.length ? missingDocuments.join(', ') : 'Core documents complete')}</div>
         </div>
         <div class="tag-row">
@@ -1087,13 +1565,35 @@
             </div>
           `).join('')}
         </div>
+        <div class="relationship-grid">
+          <div class="relationship-card">
+            <strong>Linked shifts</strong>
+            <ul>
+              ${relatedShifts.length ? relatedShifts.map(shift => `
+                <li><strong>${escapeHtml(shift.title)}</strong><br><small>${escapeHtml(formatRosterTime(shift.start))} – ${escapeHtml(formatRosterTime(shift.end))}</small></li>
+              `).join('') : '<li>No roster shifts linked yet.</li>'}
+            </ul>
+          </div>
+          <div class="relationship-card">
+            <strong>Linked incidents</strong>
+            <ul>
+              ${relatedIncidents.length ? relatedIncidents.map(incident => `
+                <li><strong>${escapeHtml(incident.id)}</strong> • ${escapeHtml(incident.type)}<br><small>${escapeHtml(incident.status)} • ${escapeHtml(incident.location)}</small></li>
+              `).join('') : '<li>No incidents linked to this guard yet.</li>'}
+            </ul>
+          </div>
+        </div>
       `;
+
+      document.getElementById('profileEditGuardBtn').addEventListener('click', () => openEntityModal('guard', 'edit', guard.id));
+      document.getElementById('profileDeleteGuardBtn').addEventListener('click', () => deleteGuard(guard.id));
     }
 
     function renderIncidentSummary() {
-      const openCount = incidentData.filter(incident => incident.status !== 'Resolved').length;
-      const escalatedCount = incidentData.filter(incident => incident.status === 'Escalated').length;
-      setIncidentSummary(`${openCount} active incident(s) • ${escalatedCount} escalated for follow-up`);
+      const filteredIncidents = getFilteredIncidents();
+      const openCount = filteredIncidents.filter(incident => incident.status !== 'Resolved').length;
+      const escalatedCount = filteredIncidents.filter(incident => incident.status === 'Escalated').length;
+      setIncidentSummary(`${filteredIncidents.length} shown • ${openCount} active incident(s) • ${escalatedCount} escalated`);
     }
 
     function setIncidentSummary(message) {
@@ -1116,7 +1616,8 @@
 
     function renderIncidentList() {
       const incidentList = document.getElementById('incidentList');
-      incidentList.innerHTML = incidentData.map(incident => {
+      const filteredIncidents = getFilteredIncidents();
+      incidentList.innerHTML = filteredIncidents.length ? filteredIncidents.map(incident => {
         const currentStageIndex = incidentWorkflow.indexOf(incident.status);
 
         return `
@@ -1139,12 +1640,18 @@
               `).join('')}
             </div>
             <div class="action-row" style="margin-top:0.9rem;">
-              <button type="button" class="btn btn-small incident-back" data-incident-id="${incident.id}" ${currentStageIndex === 0 ? 'disabled' : ''}>Move Back</button>
-              <button type="button" class="btn btn-small btn-success incident-next" data-incident-id="${incident.id}" ${currentStageIndex === incidentWorkflow.length - 1 ? 'disabled' : ''}>Advance Status</button>
+              <div class="toolbar-group">
+                <button type="button" class="btn btn-small incident-back" data-incident-id="${incident.id}" ${currentStageIndex === 0 ? 'disabled' : ''}>Move Back</button>
+                <button type="button" class="btn btn-small btn-success incident-next" data-incident-id="${incident.id}" ${currentStageIndex === incidentWorkflow.length - 1 ? 'disabled' : ''}>Advance Status</button>
+              </div>
+              <div class="toolbar-group">
+                <button type="button" class="btn btn-small incident-edit" data-incident-id="${incident.id}">Edit</button>
+                <button type="button" class="btn btn-small btn-danger incident-delete" data-incident-id="${incident.id}">Delete</button>
+              </div>
             </div>
           </div>
         `;
-      }).join('');
+      }).join('') : '<div class="empty-state">No incidents match the current search or status filter.</div>';
 
       incidentList.querySelectorAll('.incident-back').forEach(button => {
         button.addEventListener('click', () => updateIncidentStatus(button.dataset.incidentId, -1));
@@ -1154,7 +1661,65 @@
         button.addEventListener('click', () => updateIncidentStatus(button.dataset.incidentId, 1));
       });
 
+      incidentList.querySelectorAll('.incident-edit').forEach(button => {
+        button.addEventListener('click', () => openEntityModal('incident', 'edit', button.dataset.incidentId));
+      });
+
+      incidentList.querySelectorAll('.incident-delete').forEach(button => {
+        button.addEventListener('click', () => deleteIncident(button.dataset.incidentId));
+      });
+
       renderIncidentSummary();
+    }
+
+    function renderRosterSiteFilter() {
+      const rosterSiteFilter = document.getElementById('rosterSiteFilter');
+      const currentValue = rosterSiteFilter.value || 'all';
+      const siteOptions = Array.from(new Set(scheduleEvents.map(event => event.siteName).filter(Boolean))).sort();
+      rosterSiteFilter.innerHTML = `
+        <option value="all">All roster sites</option>
+        ${siteOptions.map(siteName => `<option value="${escapeHtml(siteName)}">${escapeHtml(siteName)}</option>`).join('')}
+      `;
+      if (siteOptions.includes(currentValue)) {
+        rosterSiteFilter.value = currentValue;
+      }
+    }
+
+    function renderRosterList() {
+      renderRosterSiteFilter();
+      const rosterList = document.getElementById('rosterList');
+      const filteredEvents = getFilteredRosterEvents();
+      rosterList.innerHTML = filteredEvents.length ? filteredEvents.map(event => {
+        const assignedGuard = guardData.find(guard => guard.id === event.guardId);
+        return `
+          <div class="data-row">
+            <div class="action-row">
+              <div>
+                <h4>${escapeHtml(event.title)}</h4>
+                <small>${escapeHtml(formatRosterTime(event.start))} – ${escapeHtml(formatRosterTime(event.end))}</small>
+              </div>
+              <span class="status status-patrol">${escapeHtml(event.siteName || 'Unassigned Site')}</span>
+            </div>
+            <div class="meta-list">
+              <div><strong>Assigned guard:</strong> ${escapeHtml(assignedGuard?.name || 'Unassigned')}</div>
+              <div><strong>Role:</strong> ${escapeHtml(event.role || 'General coverage')}</div>
+              <div><strong>Notes:</strong> ${escapeHtml(event.notes || 'No roster notes')}</div>
+            </div>
+            <div class="action-buttons">
+              <button type="button" class="btn btn-small roster-edit" data-shift-id="${event.id}">Edit</button>
+              <button type="button" class="btn btn-small btn-danger roster-delete" data-shift-id="${event.id}">Delete</button>
+            </div>
+          </div>
+        `;
+      }).join('') : '<div class="empty-state">No roster shifts match the current search or site filter.</div>';
+
+      rosterList.querySelectorAll('.roster-edit').forEach(button => {
+        button.addEventListener('click', () => openEntityModal('shift', 'edit', button.dataset.shiftId));
+      });
+
+      rosterList.querySelectorAll('.roster-delete').forEach(button => {
+        button.addEventListener('click', () => deleteShift(button.dataset.shiftId));
+      });
     }
 
     function serializeState() {
@@ -1186,19 +1751,18 @@
       }
 
       if (Array.isArray(state.incidentData) && state.incidentData.length) {
-        incidentData = state.incidentData;
+        incidentData = state.incidentData.map(incident => ({
+          ...incident,
+          guardId: incident.guardId || guardData.find(guard => guard.name === incident.reporter)?.id || ''
+        }));
       }
 
       if (Array.isArray(state.siteData) && state.siteData.length) {
-        siteData = state.siteData;
+        siteData = state.siteData.map(normalizeSite);
       }
 
       if (Array.isArray(state.scheduleEvents) && state.scheduleEvents.length) {
-        scheduleEvents = state.scheduleEvents.map(event => ({
-          ...event,
-          start: new Date(event.start),
-          end: new Date(event.end)
-        }));
+        scheduleEvents = state.scheduleEvents.map(normalizeScheduleEvent);
       }
 
       if (typeof state.selectedGuardId === 'string') {
@@ -1238,6 +1802,7 @@
       } else if (usingCalendarFallback) {
         renderCalendarFallback();
       }
+      renderRosterList();
     }
 
     function saveDashboardState() {
@@ -1276,27 +1841,47 @@
     function buildCalendarEvents() {
       const weekStart = getStartOfWeek(new Date());
       return [
-        {
+        normalizeScheduleEvent({
+          id: 'SHIFT-001',
           title: 'Thabo • Sandton Night',
+          guardId: 'SG-042',
+          siteName: 'Sandton Command Centre',
+          role: 'Night Shift',
+          notes: 'Night access control and command room handover',
           start: atWeekTime(weekStart, 0, 18, 0),
           end: atWeekTime(weekStart, 1, 6, 0)
-        },
-        {
+        }),
+        normalizeScheduleEvent({
+          id: 'SHIFT-002',
           title: 'Nokuthula • Midrand Swing',
+          guardId: 'SG-119',
+          siteName: 'Midrand Logistics Park',
+          role: 'Swing Shift',
+          notes: 'Loading bay patrol and CCTV spot checks',
           start: atWeekTime(weekStart, 1, 14, 0),
           end: atWeekTime(weekStart, 1, 22, 0)
-        },
-        {
+        }),
+        normalizeScheduleEvent({
+          id: 'SHIFT-003',
           title: 'John • Relief Coverage',
+          guardId: 'SG-087',
+          siteName: 'Relief Pool',
+          role: 'Relief Coverage',
+          notes: 'Reserve coverage for relief pool call-outs',
           start: atWeekTime(weekStart, 3, 6, 0),
           end: atWeekTime(weekStart, 3, 18, 0)
-        },
-        {
+        }),
+        normalizeScheduleEvent({
+          id: 'SHIFT-004',
           title: 'Control Room Handover',
+          guardId: '',
+          siteName: 'Sandton Command Centre',
+          role: 'Supervisor handover',
+          notes: 'Shared control room briefing',
           start: atWeekTime(weekStart, 4, 8, 0),
           end: atWeekTime(weekStart, 4, 10, 0),
           color: '#10b981'
-        }
+        })
       ];
     }
 
@@ -1365,27 +1950,39 @@
         },
         events: scheduleEvents,
         eventDrop(info) {
-          scheduleEvents = calendar.getEvents().map(event => ({
+          scheduleEvents = calendar.getEvents().map(event => normalizeScheduleEvent({
+            id: event.id,
             title: event.title,
+            guardId: event.extendedProps.guardId,
+            siteName: event.extendedProps.siteName,
+            role: event.extendedProps.role,
+            notes: event.extendedProps.notes,
             start: event.start,
             end: event.end,
             color: event.backgroundColor || undefined
           }));
           document.getElementById('scheduleFeedback').textContent = `${info.event.title} moved to ${info.event.start.toLocaleString('en-ZA')}.`;
           addActivity('Roster updated', `${info.event.title} moved to ${info.event.start.toLocaleString('en-ZA')}.`);
+          renderRosterList();
+          renderGuardProfile();
           renderReportPreview();
           saveDashboardState();
         },
         select(info) {
-          const newEvent = {
+          const newEvent = normalizeScheduleEvent({
+            id: createId('SHIFT'),
             title: 'Open Shift • Relief Officer',
+            siteName: 'Unassigned Site',
+            role: 'Open Shift',
+            notes: 'Created from the calendar selection.',
             start: info.start,
             end: info.end
-          };
+          });
           scheduleEvents.push(newEvent);
           calendar.addEvent(newEvent);
           document.getElementById('scheduleFeedback').textContent = 'Open shift added to the roster for assignment.';
           addActivity('Open shift created', 'A new unassigned relief shift was added to the roster.');
+          renderRosterList();
           renderReportPreview();
           saveDashboardState();
         }
@@ -1508,10 +2105,441 @@
       await connectFirebase(true);
     }
 
+    function toDateTimeLocalValue(date) {
+      const value = new Date(date);
+      const offset = value.getTimezoneOffset();
+      const localDate = new Date(value.getTime() - (offset * 60 * 1000));
+      return localDate.toISOString().slice(0, 16);
+    }
+
+    function getNextGuardTemplate() {
+      return guardPipeline.find(candidate => !guardData.some(existingGuard => existingGuard.id === candidate.id)) || {
+        id: createId('SG'),
+        name: '',
+        pay: 'R28/hr',
+        certifications: '',
+        certificationExpiry: '',
+        status: 'Available',
+        site: '',
+        shift: '',
+        contact: '',
+        skills: [],
+        documents: []
+      };
+    }
+
+    function getNextSiteTemplate() {
+      return sitePipeline.find(site => !siteData.some(existingSite => existingSite.name === site.name)) || {
+        id: createId('SITE'),
+        name: '',
+        guardCount: 1,
+        postOrders: '',
+        client: '',
+        notes: '',
+        sla: 'Pending'
+      };
+    }
+
+    function setEntityModalStatus(message) {
+      document.getElementById('entityModalStatus').textContent = message;
+    }
+
+    function closeEntityModal() {
+      document.getElementById('entityModal').hidden = true;
+      document.getElementById('entityModalForm').reset();
+      entityModalState = { type: '', mode: 'create', id: '' };
+      setEntityModalStatus('Complete the form and save your changes.');
+    }
+
+    function openEntityModal(type, mode, id = '') {
+      entityModalState = { type, mode, id };
+      const modal = document.getElementById('entityModal');
+      const titleMap = {
+        guard: 'Guard',
+        shift: 'Roster Shift',
+        site: 'Site',
+        incident: 'Incident'
+      };
+      const subtitleMap = {
+        guard: 'Create or update guard records, sites, skills, and compliance info.',
+        shift: 'Create or edit roster assignments with dates, guards, and post notes.',
+        site: 'Capture a full site profile with client details and post-order notes.',
+        incident: 'Create or update incident reports and linked responders.'
+      };
+      const fields = document.getElementById('entityModalFields');
+      const title = `${mode === 'edit' ? 'Edit' : 'Create'} ${titleMap[type]}`;
+      document.getElementById('entityModalTitle').textContent = title;
+      document.getElementById('entityModalSubtitle').textContent = subtitleMap[type];
+      setEntityModalStatus(`Ready to ${mode === 'edit' ? 'update' : 'create'} this ${titleMap[type].toLowerCase()}.`);
+
+      if (type === 'guard') {
+        const selectedGuard = guardData.find(entry => entry.id === id);
+        const guard = mode === 'edit' && selectedGuard
+          ? cloneGuard(selectedGuard)
+          : cloneGuard({ ...getNextGuardTemplate(), documents: [] });
+        const skillsValue = guard.skills.join(', ');
+        fields.innerHTML = `
+          <div class="form-group"><label for="modalGuardId">Guard ID</label><input id="modalGuardId" name="id" value="${escapeHtml(guard.id)}" ${mode === 'edit' ? 'readonly' : ''}></div>
+          <div class="form-group"><label for="modalGuardName">Full name</label><input id="modalGuardName" name="name" value="${escapeHtml(guard.name)}" required></div>
+          <div class="form-group"><label for="modalGuardPay">Pay rate</label><input id="modalGuardPay" name="pay" value="${escapeHtml(guard.pay)}" required></div>
+          <div class="form-group"><label for="modalGuardStatus">Status</label><select id="modalGuardStatus" name="status"><option ${guard.status === 'On Duty' ? 'selected' : ''}>On Duty</option><option ${guard.status === 'Patrolling' ? 'selected' : ''}>Patrolling</option><option ${guard.status === 'Available' ? 'selected' : ''}>Available</option><option ${guard.status === 'Off Duty' ? 'selected' : ''}>Off Duty</option><option ${guard.status === 'Break' ? 'selected' : ''}>Break</option></select></div>
+          <div class="form-group"><label for="modalGuardCertifications">Certifications</label><input id="modalGuardCertifications" name="certifications" value="${escapeHtml(guard.certifications)}"></div>
+          <div class="form-group"><label for="modalGuardExpiry">Certification expiry</label><input id="modalGuardExpiry" name="certificationExpiry" value="${escapeHtml(guard.certificationExpiry)}" placeholder="YYYY-MM"></div>
+          <div class="form-group"><label for="modalGuardSite">Primary site</label><input id="modalGuardSite" name="site" value="${escapeHtml(guard.site)}" required></div>
+          <div class="form-group"><label for="modalGuardShift">Shift</label><input id="modalGuardShift" name="shift" value="${escapeHtml(guard.shift)}"></div>
+          <div class="form-group" style="grid-column:1/-1;"><label for="modalGuardContact">Contact</label><input id="modalGuardContact" name="contact" value="${escapeHtml(guard.contact)}" required></div>
+          <div class="form-group" style="grid-column:1/-1;"><label for="modalGuardSkills">Skills</label><textarea id="modalGuardSkills" name="skills" rows="3" placeholder="Comma-separated skills">${escapeHtml(skillsValue)}</textarea></div>
+        `;
+      }
+
+      if (type === 'shift') {
+        const defaultSiteName = siteData[0]?.name || '';
+        const existingShift = scheduleEvents.find(entry => entry.id === id);
+        const shift = mode === 'edit' && existingShift
+          ? normalizeScheduleEvent(existingShift)
+          : normalizeScheduleEvent({
+            id: createId('SHIFT'),
+            title: '',
+            guardId: '',
+            siteName: defaultSiteName,
+            role: 'General coverage',
+            notes: '',
+            start: new Date(),
+            end: new Date(Date.now() + 60 * 60 * 1000)
+          });
+        fields.innerHTML = `
+          <div class="form-group"><label for="modalShiftTitle">Shift title</label><input id="modalShiftTitle" name="title" value="${escapeHtml(shift.title)}" placeholder="Auto-builds from guard and site if left blank"></div>
+          <div class="form-group"><label for="modalShiftGuard">Assigned guard</label><select id="modalShiftGuard" name="guardId"><option value="">Unassigned</option>${guardData.map(guard => `<option value="${escapeHtml(guard.id)}" ${guard.id === shift.guardId ? 'selected' : ''}>${escapeHtml(guard.name)}</option>`).join('')}</select></div>
+          <div class="form-group"><label for="modalShiftSite">Site</label><input id="modalShiftSite" name="siteName" value="${escapeHtml(shift.siteName)}" required></div>
+          <div class="form-group"><label for="modalShiftRole">Role / post</label><input id="modalShiftRole" name="role" value="${escapeHtml(shift.role)}"></div>
+          <div class="form-group"><label for="modalShiftStart">Start</label><input id="modalShiftStart" name="start" type="datetime-local" value="${escapeHtml(toDateTimeLocalValue(shift.start))}" required></div>
+          <div class="form-group"><label for="modalShiftEnd">End</label><input id="modalShiftEnd" name="end" type="datetime-local" value="${escapeHtml(toDateTimeLocalValue(shift.end))}" required></div>
+          <div class="form-group"><label for="modalShiftColor">Color</label><input id="modalShiftColor" name="color" type="color" value="${escapeHtml(shift.color || '#3b82f6')}"></div>
+          <div class="form-group" style="grid-column:1/-1;"><label for="modalShiftNotes">Notes</label><textarea id="modalShiftNotes" name="notes" rows="3">${escapeHtml(shift.notes || '')}</textarea></div>
+        `;
+      }
+
+      if (type === 'site') {
+        const existingSite = siteData.find(entry => entry.id === id);
+        const site = mode === 'edit' && existingSite ? normalizeSite(existingSite) : normalizeSite(getNextSiteTemplate());
+        fields.innerHTML = `
+          <div class="form-group"><label for="modalSiteName">Site name</label><input id="modalSiteName" name="name" value="${escapeHtml(site.name)}" required></div>
+          <div class="form-group"><label for="modalSiteClient">Client / manager</label><input id="modalSiteClient" name="client" value="${escapeHtml(site.client)}" required></div>
+          <div class="form-group"><label for="modalSiteGuardCount">Planned guards</label><input id="modalSiteGuardCount" name="guardCount" type="number" min="0" value="${escapeHtml(site.guardCount)}"></div>
+          <div class="form-group"><label for="modalSiteSla">SLA / compliance</label><input id="modalSiteSla" name="sla" value="${escapeHtml(site.sla)}"></div>
+          <div class="form-group" style="grid-column:1/-1;"><label for="modalSitePostOrders">Post orders</label><input id="modalSitePostOrders" name="postOrders" value="${escapeHtml(site.postOrders)}" required></div>
+          <div class="form-group" style="grid-column:1/-1;"><label for="modalSiteNotes">Notes</label><textarea id="modalSiteNotes" name="notes" rows="3">${escapeHtml(site.notes || '')}</textarea></div>
+        `;
+      }
+
+      if (type === 'incident') {
+        const existingIncident = incidentData.find(entry => entry.id === id);
+        const incident = mode === 'edit' && existingIncident
+          ? { ...existingIncident }
+          : {
+            id: generateIncidentId(),
+            type: 'Unauthorized Access',
+            severity: 'Low',
+            location: '',
+            reporter: '',
+            description: '',
+            attachment: 'No media attached',
+            status: 'Open',
+            time: formatCurrentTime(),
+            guardId: ''
+          };
+        fields.innerHTML = `
+          <div class="form-group"><label for="modalIncidentType">Incident type</label><select id="modalIncidentType" name="type">${['Unauthorized Access', 'Suspicious Activity', 'Medical Emergency', 'Equipment Failure', 'Other'].map(option => `<option ${incident.type === option ? 'selected' : ''}>${escapeHtml(option)}</option>`).join('')}</select></div>
+          <div class="form-group"><label for="modalIncidentSeverity">Severity</label><select id="modalIncidentSeverity" name="severity">${['Low', 'Medium', 'High', 'Critical'].map(option => `<option ${incident.severity === option ? 'selected' : ''}>${escapeHtml(option)}</option>`).join('')}</select></div>
+          <div class="form-group"><label for="modalIncidentLocation">Location</label><input id="modalIncidentLocation" name="location" value="${escapeHtml(incident.location)}" required></div>
+          <div class="form-group"><label for="modalIncidentReporter">Reported by</label><input id="modalIncidentReporter" name="reporter" value="${escapeHtml(incident.reporter)}" required></div>
+          <div class="form-group"><label for="modalIncidentGuard">Linked guard</label><select id="modalIncidentGuard" name="guardId"><option value="">No linked guard</option>${guardData.map(guard => `<option value="${escapeHtml(guard.id)}" ${(incident.guardId || '') === guard.id ? 'selected' : ''}>${escapeHtml(guard.name)}</option>`).join('')}</select></div>
+          <div class="form-group"><label for="modalIncidentStatus">Workflow status</label><select id="modalIncidentStatus" name="status">${incidentWorkflow.map(option => `<option ${incident.status === option ? 'selected' : ''}>${escapeHtml(option)}</option>`).join('')}</select></div>
+          <div class="form-group" style="grid-column:1/-1;"><label for="modalIncidentAttachment">Attachment</label><input id="modalIncidentAttachment" name="attachment" value="${escapeHtml(incident.attachment || '')}"></div>
+          <div class="form-group" style="grid-column:1/-1;"><label for="modalIncidentDescription">Description</label><textarea id="modalIncidentDescription" name="description" rows="4" required>${escapeHtml(incident.description)}</textarea></div>
+        `;
+      }
+
+      modal.hidden = false;
+    }
+
+    function saveGuardFromModal(formData) {
+      const isEdit = entityModalState.mode === 'edit';
+      const existingGuard = isEdit ? guardData.find(guard => guard.id === entityModalState.id) : null;
+      const guardRecord = {
+        id: (formData.get('id') || createId('SG')).toString().trim(),
+        name: formData.get('name').toString().trim(),
+        pay: formData.get('pay').toString().trim(),
+        certifications: formData.get('certifications').toString().trim(),
+        certificationExpiry: formData.get('certificationExpiry').toString().trim(),
+        status: formData.get('status').toString().trim(),
+        site: formData.get('site').toString().trim(),
+        shift: formData.get('shift').toString().trim(),
+        contact: formData.get('contact').toString().trim(),
+        skills: formData.get('skills').toString().split(',').map(skill => skill.trim()).filter(Boolean),
+        documents: existingGuard?.documents || []
+      };
+
+      if (!guardRecord.name || !guardRecord.site || !guardRecord.contact) {
+        setEntityModalStatus('Name, site, and contact are required for each guard.');
+        return false;
+      }
+
+      if (isEdit) {
+        Object.assign(existingGuard, guardRecord);
+      } else {
+        guardData.push(guardRecord);
+      }
+
+      selectedGuardId = guardRecord.id;
+      const title = isEdit ? 'Guard updated' : 'Guard added';
+      const detail = isEdit ? `${guardRecord.name}'s profile was updated.` : `${guardRecord.name} joined the active guard roster.`;
+      document.getElementById('guardActionStatus').textContent = detail;
+      addActivity(title, detail);
+      return true;
+    }
+
+    function saveShiftFromModal(formData) {
+      const isEdit = entityModalState.mode === 'edit';
+      const existingShift = isEdit ? scheduleEvents.find(event => event.id === entityModalState.id) : null;
+      const shiftRecord = normalizeScheduleEvent({
+        id: existingShift?.id || createId('SHIFT'),
+        title: formData.get('title').toString().trim(),
+        guardId: formData.get('guardId').toString(),
+        siteName: formData.get('siteName').toString().trim(),
+        role: formData.get('role').toString().trim(),
+        notes: formData.get('notes').toString().trim(),
+        start: new Date(formData.get('start').toString()),
+        end: new Date(formData.get('end').toString()),
+        color: formData.get('color').toString().trim()
+      });
+
+      if (!shiftRecord.siteName || Number.isNaN(shiftRecord.start.getTime()) || Number.isNaN(shiftRecord.end.getTime()) || shiftRecord.end <= shiftRecord.start) {
+        setEntityModalStatus('Enter a site plus a valid start and end time.');
+        return false;
+      }
+
+      const linkedGuard = guardData.find(guard => guard.id === shiftRecord.guardId);
+      shiftRecord.title = buildShiftTitle({ ...shiftRecord, title: shiftRecord.title });
+      if (linkedGuard) {
+        linkedGuard.shift = `${formatRosterTime(shiftRecord.start)} – ${formatRosterTime(shiftRecord.end)}`;
+      }
+
+      if (isEdit) {
+        Object.assign(existingShift, shiftRecord);
+      } else {
+        scheduleEvents.push(shiftRecord);
+      }
+
+      syncCalendarFromState();
+      document.getElementById('scheduleFeedback').textContent = `${shiftRecord.title} saved to the roster.`;
+      addActivity(isEdit ? 'Roster shift updated' : 'Roster shift created', `${shiftRecord.title} saved for ${shiftRecord.siteName}.`);
+      return true;
+    }
+
+    function saveSiteFromModal(formData) {
+      const isEdit = entityModalState.mode === 'edit';
+      const existingSite = isEdit ? siteData.find(site => site.id === entityModalState.id) : null;
+      const siteRecord = normalizeSite({
+        id: existingSite?.id || createId('SITE'),
+        name: formData.get('name').toString().trim(),
+        client: formData.get('client').toString().trim(),
+        guardCount: Number(formData.get('guardCount') || 0),
+        sla: formData.get('sla').toString().trim(),
+        postOrders: formData.get('postOrders').toString().trim(),
+        notes: formData.get('notes').toString().trim()
+      });
+
+      if (!siteRecord.name || !siteRecord.client || !siteRecord.postOrders) {
+        setEntityModalStatus('Site name, client, and post orders are required.');
+        return false;
+      }
+
+      if (isEdit) {
+        const previousName = existingSite.name;
+        Object.assign(existingSite, siteRecord);
+        guardData.forEach(guard => {
+          if (guard.site === previousName) {
+            guard.site = siteRecord.name;
+          }
+        });
+        scheduleEvents.forEach(event => {
+          if (event.siteName === previousName) {
+            event.siteName = siteRecord.name;
+            event.title = buildShiftTitle(event);
+          }
+        });
+      } else {
+        siteData.push(siteRecord);
+      }
+
+      document.getElementById('siteActionStatus').textContent = `${siteRecord.name} saved and included in active reporting.`;
+      addActivity(isEdit ? 'Site updated' : 'Site added', `${siteRecord.name} is ready for site management workflows.`);
+      return true;
+    }
+
+    function saveIncidentFromModal(formData) {
+      const isEdit = entityModalState.mode === 'edit';
+      const existingIncident = isEdit ? incidentData.find(incident => incident.id === entityModalState.id) : null;
+      const reporter = formData.get('reporter').toString().trim();
+      const guardId = formData.get('guardId').toString();
+      const incidentRecord = {
+        id: existingIncident?.id || generateIncidentId(),
+        type: formData.get('type').toString(),
+        severity: formData.get('severity').toString(),
+        location: formData.get('location').toString().trim(),
+        reporter,
+        description: formData.get('description').toString().trim(),
+        attachment: formData.get('attachment').toString().trim() || 'No media attached',
+        status: formData.get('status').toString(),
+        time: existingIncident?.time || formatCurrentTime(),
+        guardId: guardId || guardData.find(guard => guard.name === reporter)?.id || ''
+      };
+
+      if (!incidentRecord.location || !incidentRecord.reporter || !incidentRecord.description) {
+        setEntityModalStatus('Location, reporter, and description are required.');
+        return false;
+      }
+
+      if (isEdit) {
+        Object.assign(existingIncident, incidentRecord);
+      } else {
+        incidentData.unshift(incidentRecord);
+      }
+
+      addActivity(isEdit ? 'Incident updated' : 'Incident created', `${incidentRecord.id} saved for ${incidentRecord.location}.`);
+      return true;
+    }
+
+    function deleteGuard(guardId) {
+      const guard = guardData.find(entry => entry.id === guardId);
+      if (!guard || !window.confirm(`Delete ${guard.name} from the active guard roster?`)) {
+        return;
+      }
+
+      guardData = guardData.filter(entry => entry.id !== guardId);
+      scheduleEvents = scheduleEvents.filter(event => event.guardId !== guardId);
+      incidentData = incidentData.map(incident => incident.guardId === guardId ? { ...incident, guardId: '' } : incident);
+      delete attendanceSessions[guardId];
+      selectedGuardId = guardData[0]?.id || '';
+      syncCalendarFromState();
+      renderAll();
+      document.getElementById('guardActionStatus').textContent = `${guard.name} removed from the active guard roster.`;
+      addActivity('Guard removed', `${guard.name} was deleted from the dashboard.`);
+      saveDashboardState();
+    }
+
+    function deleteShift(shiftId) {
+      const shift = scheduleEvents.find(event => event.id === shiftId);
+      if (!shift || !window.confirm(`Delete ${shift.title} from the roster?`)) {
+        return;
+      }
+
+      scheduleEvents = scheduleEvents.filter(event => event.id !== shiftId);
+      syncCalendarFromState();
+      renderAll();
+      document.getElementById('scheduleFeedback').textContent = `${shift.title} removed from the roster.`;
+      addActivity('Roster shift deleted', `${shift.title} was removed from the roster.`);
+      saveDashboardState();
+    }
+
+    function deleteSite(siteId) {
+      const site = siteData.find(entry => entry.id === siteId);
+      if (!site || !window.confirm(`Delete ${site.name} from the site portfolio?`)) {
+        return;
+      }
+
+      siteData = siteData.filter(entry => entry.id !== siteId);
+      guardData.forEach(guard => {
+        if (guard.site === site.name) {
+          guard.site = 'Unassigned Site';
+        }
+      });
+      scheduleEvents.forEach(event => {
+        if (event.siteName === site.name) {
+          event.siteName = 'Unassigned Site';
+          event.title = buildShiftTitle(event);
+        }
+      });
+      syncCalendarFromState();
+      renderAll();
+      document.getElementById('siteActionStatus').textContent = `${site.name} removed from the site portfolio.`;
+      addActivity('Site deleted', `${site.name} was removed from active site management.`);
+      saveDashboardState();
+    }
+
+    function deleteIncident(incidentId) {
+      const incident = incidentData.find(entry => entry.id === incidentId);
+      if (!incident || !window.confirm(`Delete incident ${incident.id}?`)) {
+        return;
+      }
+
+      incidentData = incidentData.filter(entry => entry.id !== incidentId);
+      renderAll();
+      addActivity('Incident deleted', `${incident.id} was removed from the incident queue.`);
+      saveDashboardState();
+    }
+
+    function closeClockInModal() {
+      document.getElementById('clockInModal').hidden = true;
+      document.getElementById('clockInForm').reset();
+      document.getElementById('clockInPhotoStatus').textContent = 'No photo captured yet.';
+      document.getElementById('clockInModalStatus').textContent = 'Allow GPS access and capture a photo to continue.';
+      pendingClockInGuardId = '';
+      pendingClockInGps = null;
+      pendingClockInPhotoPreview = '';
+    }
+
+    function updateClockInGpsStatus(message) {
+      document.getElementById('clockInGpsStatus').value = message;
+    }
+
+    function requestClockInGps() {
+      if (!navigator.geolocation) {
+        pendingClockInGps = { label: 'GPS unavailable in this browser.' };
+        updateClockInGpsStatus(pendingClockInGps.label);
+        document.getElementById('clockInModalStatus').textContent = 'GPS is unavailable in this browser; you can still attach a photo.';
+        return;
+      }
+
+      updateClockInGpsStatus('Requesting current GPS position...');
+      navigator.geolocation.getCurrentPosition(position => {
+        const latitude = position.coords.latitude.toFixed(5);
+        const longitude = position.coords.longitude.toFixed(5);
+        const accuracy = Math.round(position.coords.accuracy);
+        pendingClockInGps = {
+          latitude,
+          longitude,
+          accuracy,
+          label: `Lat ${latitude}, Lng ${longitude} (±${accuracy}m)`
+        };
+        updateClockInGpsStatus(`${pendingClockInGps.label}\nCaptured at ${formatCurrentTime()}`);
+        document.getElementById('clockInModalStatus').textContent = 'GPS captured. Add a photo and confirm clock-in.';
+      }, error => {
+        pendingClockInGps = { label: `GPS unavailable: ${error.message}` };
+        updateClockInGpsStatus(pendingClockInGps.label);
+        document.getElementById('clockInModalStatus').textContent = 'GPS could not be captured automatically. Attach a photo to continue.';
+      }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+    }
+
+    function openClockInModal(guard) {
+      pendingClockInGuardId = guard.id;
+      pendingClockInGps = null;
+      pendingClockInPhotoPreview = '';
+      document.getElementById('clockInGuardName').value = guard.name;
+      document.getElementById('clockInTimestamp').value = new Date().toLocaleString('en-ZA');
+      updateClockInGpsStatus('Waiting for GPS capture...');
+      document.getElementById('clockInPhotoStatus').textContent = 'No photo captured yet.';
+      document.getElementById('clockInModal').hidden = false;
+      requestClockInGps();
+    }
+
     function renderAll() {
       renderGuardDirectory();
       renderGuardProfile();
       renderAttendanceOptions();
+      renderAttendancePanel();
+      renderRosterList();
       renderSitesList();
       renderIncidentList();
       renderReportPreview();
@@ -1548,9 +2576,7 @@
         ? `${documentType} refreshed for ${selectedGuard.name} and queued for review again.`
         : `${documentType} added to ${selectedGuard.name}'s profile for verification.`;
       addActivity('Compliance updated', `${documentType} uploaded for ${selectedGuard.name}.`);
-      renderGuardDirectory();
-      renderGuardProfile();
-      renderReportPreview();
+      renderAll();
       saveDashboardState();
     });
 
@@ -1585,15 +2611,15 @@
         description,
         attachment: sanitizeFileName(attachmentInput.files[0]?.name, 'No media attached'),
         status: 'Open',
-        time: formatCurrentTime()
+        time: formatCurrentTime(),
+        guardId: guardData.find(guard => guard.name === reporter)?.id || ''
       });
 
       event.target.reset();
       attachmentInput.value = '';
       document.getElementById('incidentAttachmentStatus').textContent = 'No attachment selected.';
       addActivity('Incident submitted', `${incidentData[0].id} logged at ${location}.`);
-      renderIncidentList();
-      renderReportPreview();
+      renderAll();
       saveDashboardState();
     });
 
@@ -1603,12 +2629,16 @@
       const nextTemplate = reliefShiftTemplates.find(template => !scheduleEvents.some(event => event.title === template.title));
       const template = nextTemplate || reliefShiftTemplates[0];
       const weekStart = getStartOfWeek(new Date());
-      const reliefShift = {
+      const reliefShift = normalizeScheduleEvent({
+        id: createId('SHIFT'),
         title: template.title,
+        siteName: template.title.includes('Menlyn') ? 'Menlyn Corporate Park' : template.title.includes('Rosebank') ? 'Rosebank Banking Plaza' : 'Midrand Logistics Park',
+        role: 'Relief Shift',
+        notes: 'Auto-scheduled relief coverage.',
         start: atWeekTime(weekStart, template.dayOffset, template.startHour, 0),
         end: atWeekTime(weekStart, template.dayOffset, template.endHour, 0),
         color: template.color
-      };
+      });
 
       if (nextTemplate) {
         scheduleEvents.push(reliefShift);
@@ -1634,7 +2664,7 @@
 
       document.getElementById('scheduleFeedback').textContent = `${template.title} prepared and added to the roster.`;
       addActivity('Auto-schedule completed', `${template.title} prepared for the active week roster.`);
-      renderReportPreview();
+      renderAll();
       saveDashboardState();
     });
 
@@ -1648,40 +2678,22 @@
       saveDashboardState();
     });
 
-    document.getElementById('addGuardBtn').addEventListener('click', () => {
-      const nextCandidate = guardPipeline.find(candidate => !guardData.some(existingGuard => existingGuard.id === candidate.id));
-      const newGuard = nextCandidate || guardPipeline[guardPipeline.length - 1];
-
-      if (nextCandidate) {
-        guardData.push(cloneGuard(newGuard));
-        const weekStart = getStartOfWeek(new Date());
-        const onboardingEvent = {
-          title: `${newGuard.name.split(' ')[0]} • Onboarding Briefing`,
-          start: atWeekTime(weekStart, 1, 9, 0),
-          end: atWeekTime(weekStart, 1, 10, 0),
-          color: '#2563eb'
-        };
-        scheduleEvents.push(onboardingEvent);
-
-        if (calendar) {
-          calendar.addEvent(onboardingEvent);
-        }
+    document.getElementById('addGuardBtn').addEventListener('click', () => openEntityModal('guard', 'create'));
+    document.getElementById('editGuardBtn').addEventListener('click', () => {
+      const guard = getSelectedGuard();
+      if (!guard) {
+        document.getElementById('guardActionStatus').textContent = 'Add a guard before trying to edit profile details.';
+        return;
       }
-
-      selectedGuardId = newGuard.id;
-      renderAll();
-      document.getElementById('guardActionStatus').textContent = nextCandidate
-        ? `${newGuard.name} added to the relief pool, added to attendance options, and scheduled for onboarding.`
-        : `${newGuard.name} is already active in the dashboard and has been selected for review.`;
-      addActivity('Guard roster updated', nextCandidate
-        ? `${newGuard.name} joined the roster and received an onboarding shift.`
-        : `${newGuard.name} reviewed from the active roster.`);
-      saveDashboardState();
+      openEntityModal('guard', 'edit', guard.id);
     });
+    document.getElementById('deleteGuardBtn').addEventListener('click', () => deleteGuard(getSelectedGuard()?.id));
+    document.getElementById('createRosterBtn').addEventListener('click', () => openEntityModal('shift', 'create'));
+    document.getElementById('addSiteBtn').addEventListener('click', () => openEntityModal('site', 'create'));
+    document.getElementById('createIncidentBtn').addEventListener('click', () => openEntityModal('incident', 'create'));
 
     document.getElementById('clockInBtn').addEventListener('click', () => {
-      const selectedOfficer = document.getElementById('attendanceGuardSelect').value;
-      const selectedGuard = guardData.find(guard => buildAttendanceLabel(guard) === selectedOfficer);
+      const selectedGuard = getSelectedAttendanceGuard();
       const existingSession = selectedGuard ? attendanceSessions[selectedGuard.id] : null;
       const nowLabel = formatCurrentTime();
 
@@ -1691,28 +2703,20 @@
             clockedIn: false,
             clockInTime: existingSession.clockInTime || existingSession.lastActionTime || nowLabel,
             clockOutTime: nowLabel,
-            lastActionTime: nowLabel
+            lastActionTime: nowLabel,
+            gps: existingSession.gps,
+            photoName: existingSession.photoName,
+            photoPreview: existingSession.photoPreview
           };
           selectedGuard.status = 'Off Duty';
-          document.getElementById('attendanceStatus').textContent = `${selectedOfficer} clocked out successfully at ${nowLabel}.`;
+          document.getElementById('attendanceStatus').textContent = `${buildAttendanceLabel(selectedGuard)} clocked out successfully at ${nowLabel}.`;
           addActivity('Clock-out recorded', `${selectedGuard.name} clocked out at ${nowLabel}.`);
+          renderAll();
+          saveDashboardState();
         } else {
-          attendanceSessions[selectedGuard.id] = {
-            clockedIn: true,
-            clockInTime: nowLabel,
-            clockOutTime: '',
-            lastActionTime: nowLabel
-          };
-          selectedGuard.status = 'On Duty';
-          document.getElementById('attendanceStatus').textContent = `${selectedOfficer} clocked in successfully with GPS and photo verification at ${nowLabel}.`;
-          addActivity('Clock-in recorded', `${selectedGuard.name} clocked in at ${nowLabel}.`);
+          openClockInModal(selectedGuard);
         }
       }
-
-      renderGuardDirectory();
-      renderGuardProfile();
-      renderReportPreview();
-      saveDashboardState();
     });
 
     document.getElementById('panicBtn').addEventListener('click', () => {
@@ -1734,15 +2738,15 @@
           description: 'Emergency panic signal triggered from the attendance console. Immediate supervisor response required.',
           attachment: 'Live GPS ping attached',
           status: 'Escalated',
-          time: formatCurrentTime()
+          time: formatCurrentTime(),
+          guardId: selectedGuard?.id || ''
         });
         addActivity('SOS triggered', `${selectedOfficer} sent a panic alert from ${location}.`);
       } else {
         addActivity('SOS cleared', `${selectedOfficer}'s panic alert was acknowledged by dispatch.`);
       }
 
-      renderIncidentList();
-      renderReportPreview();
+      renderAll();
       saveDashboardState();
     });
 
@@ -1768,20 +2772,6 @@
       saveDashboardState();
     });
 
-    document.getElementById('addSiteBtn').addEventListener('click', () => {
-      const nextSite = sitePipeline.find(site => !siteData.includes(site)) || sitePipeline[sitePipeline.length - 1];
-
-      if (!siteData.includes(nextSite)) {
-        siteData.push(nextSite);
-      }
-
-      renderSitesList();
-      document.getElementById('siteActionStatus').textContent = `${nextSite.split(' – ')[0]} added to the client site list and included in live reporting.`;
-      addActivity('Site portfolio updated', `${nextSite.split(' – ')[0]} added for onboarding.`);
-      renderReportPreview();
-      saveDashboardState();
-    });
-
     document.getElementById('generateReportBtn').addEventListener('click', () => {
       reportGenerated = !reportGenerated;
       document.getElementById('reportStatus').textContent = reportGenerated
@@ -1798,7 +2788,95 @@
       connectFirebase(false);
     });
 
+    document.getElementById('entityModalForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const formData = new FormData(event.target);
+      const saveHandlers = {
+        guard: saveGuardFromModal,
+        shift: saveShiftFromModal,
+        site: saveSiteFromModal,
+        incident: saveIncidentFromModal
+      };
+
+      const saved = saveHandlers[entityModalState.type]?.(formData);
+      if (!saved) {
+        return;
+      }
+
+      closeEntityModal();
+      renderAll();
+      saveDashboardState();
+    });
+
+    document.getElementById('closeEntityModalBtn').addEventListener('click', closeEntityModal);
+    document.getElementById('cancelEntityModalBtn').addEventListener('click', closeEntityModal);
+    document.getElementById('closeClockInModalBtn').addEventListener('click', closeClockInModal);
+    document.getElementById('refreshGpsBtn').addEventListener('click', requestClockInGps);
+
+    document.getElementById('clockInPhotoInput').addEventListener('change', event => {
+      const file = event.target.files[0];
+      document.getElementById('clockInPhotoStatus').textContent = file ? sanitizeFileName(file.name, 'clock-in-photo.jpg') : 'No photo captured yet.';
+      if (!file) {
+        pendingClockInPhotoPreview = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = loadEvent => {
+        pendingClockInPhotoPreview = typeof loadEvent.target?.result === 'string' ? loadEvent.target.result : '';
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById('clockInForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const selectedGuard = guardData.find(guard => guard.id === pendingClockInGuardId);
+      const photoFile = document.getElementById('clockInPhotoInput').files[0];
+      const nowLabel = formatCurrentTime();
+
+      if (!selectedGuard) {
+        document.getElementById('clockInModalStatus').textContent = 'Select a guard before recording attendance.';
+        return;
+      }
+
+      if (!photoFile) {
+        document.getElementById('clockInModalStatus').textContent = 'Capture or attach a photo before confirming clock-in.';
+        return;
+      }
+
+      attendanceSessions[selectedGuard.id] = {
+        clockedIn: true,
+        clockInTime: nowLabel,
+        clockOutTime: '',
+        lastActionTime: nowLabel,
+        gps: pendingClockInGps || { label: 'GPS unavailable during clock-in.' },
+        photoName: sanitizeFileName(photoFile.name, 'clock-in-photo.jpg'),
+        photoPreview: pendingClockInPhotoPreview
+      };
+      selectedGuard.status = 'On Duty';
+      document.getElementById('attendanceStatus').textContent = `${buildAttendanceLabel(selectedGuard)} clocked in successfully with ${attendanceSessions[selectedGuard.id].gps.label}.`;
+      addActivity('Clock-in recorded', `${selectedGuard.name} clocked in with GPS and photo verification at ${nowLabel}.`);
+      closeClockInModal();
+      renderAll();
+      saveDashboardState();
+    });
+
     document.getElementById('disconnectFirebaseBtn').addEventListener('click', disconnectFirebase);
+    document.getElementById('attendanceGuardSelect').addEventListener('change', renderAttendancePanel);
+    document.getElementById('guardSearchInput').addEventListener('input', renderGuardDirectory);
+    document.getElementById('guardStatusFilter').addEventListener('change', renderGuardDirectory);
+    document.getElementById('siteSearchInput').addEventListener('input', renderSitesList);
+    document.getElementById('rosterSearchInput').addEventListener('input', renderRosterList);
+    document.getElementById('rosterSiteFilter').addEventListener('change', renderRosterList);
+    document.getElementById('incidentSearchInput').addEventListener('input', renderIncidentList);
+    document.getElementById('incidentStatusFilter').addEventListener('change', renderIncidentList);
+
+    siteData = siteData.map(normalizeSite);
+    scheduleEvents = scheduleEvents.map(normalizeScheduleEvent);
+    incidentData = incidentData.map(incident => ({
+      ...incident,
+      guardId: incident.guardId || guardData.find(guard => guard.name === incident.reporter)?.id || ''
+    }));
 
     loadLocalState();
 
