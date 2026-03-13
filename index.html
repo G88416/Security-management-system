@@ -496,6 +496,112 @@
       margin-bottom: 1rem;
     }
 
+    .session-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.55rem 0.85rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    .portal-hero {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      align-items: start;
+    }
+
+    .hero-panel {
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1rem;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(16, 185, 129, 0.08));
+    }
+
+    .hero-panel h3 {
+      margin-bottom: 0.55rem;
+    }
+
+    .hero-panel ul,
+    .smart-list,
+    .checkpoint-list {
+      padding-left: 1.1rem;
+      color: var(--text-light);
+      display: grid;
+      gap: 0.45rem;
+    }
+
+    .smart-panel,
+    .camera-shell {
+      border: 1px solid var(--border);
+      border-radius: 0.85rem;
+      padding: 0.95rem;
+      background: var(--bg);
+    }
+
+    .camera-shell video,
+    .camera-shell img {
+      width: 100%;
+      min-height: 180px;
+      max-height: 240px;
+      object-fit: cover;
+      border-radius: 0.7rem;
+      background: #020617;
+      border: 1px solid var(--border);
+    }
+
+    .camera-shell canvas {
+      display: none;
+    }
+
+    .checkpoint-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.3rem 0.65rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--muted);
+      font-size: 0.78rem;
+      margin: 0.2rem 0.35rem 0 0;
+    }
+
+    .checkpoint-chip.active {
+      background: rgba(59, 130, 246, 0.12);
+      border-color: rgba(59, 130, 246, 0.4);
+      color: var(--primary-dark);
+    }
+
+    .checkpoint-chip.complete {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.4);
+      color: #047857;
+    }
+
+    .narrative-panel {
+      border: 1px solid var(--border);
+      border-radius: 0.85rem;
+      padding: 1rem;
+      background: var(--bg);
+      white-space: pre-line;
+      color: var(--text-light);
+      line-height: 1.55;
+    }
+
+    .access-note {
+      margin-top: 0.75rem;
+      padding: 0.8rem 0.95rem;
+      border-radius: 0.8rem;
+      background: rgba(59, 130, 246, 0.08);
+      border: 1px solid rgba(59, 130, 246, 0.18);
+      color: var(--text);
+    }
+
     footer {
       text-align: center;
       margin-top: 3rem;
@@ -515,12 +621,17 @@
 
   <header>
     <h1>SecureGuard • Management Dashboard</h1>
-    <button class="theme-toggle" id="themeToggle">Dark Mode</button>
+    <div class="toolbar-group">
+      <span id="portalSessionBadge" class="session-badge">Portal session</span>
+      <button class="theme-toggle" id="themeToggle">Dark Mode</button>
+    </div>
   </header>
 
   <nav class="tabs">
-    <button data-tab="guards" class="active">Guards</button>
+    <button data-tab="portal" class="active">Portal</button>
+    <button data-tab="guards">Guards</button>
     <button data-tab="scheduling">Scheduling</button>
+    <button data-tab="leave">Leave</button>
     <button data-tab="attendance">Attendance</button>
     <button data-tab="patrol">Patrol / Tour</button>
     <button data-tab="incidents">Incidents</button>
@@ -529,8 +640,69 @@
     <button data-tab="platform">Roles / Stack</button>
   </nav>
 
+  <div id="portal" class="section active">
+    <div class="card">
+      <span class="eyebrow">Login portal</span>
+      <h2>Role-Based Access Portal</h2>
+      <p>Switch between the full Admin / Owner command view and the mobile-first Security Guard / Officer experience without leaving the demo.</p>
+
+      <div class="portal-hero" style="margin-top:1.2rem;">
+        <div class="hero-panel">
+          <h3>Admin / Owner</h3>
+          <ul>
+            <li>Full platform administration across sites, teams, billing, and compliance.</li>
+            <li>Operational intelligence across patrols, incidents, leave, and reporting.</li>
+            <li>Access to provisioning, audit activity, and site configuration.</li>
+          </ul>
+          <button type="button" class="btn" data-portal-role="Admin / Owner" style="margin-top:0.9rem;">Enter admin portal</button>
+        </div>
+        <div class="hero-panel">
+          <h3>Security Guard / Officer</h3>
+          <ul>
+            <li>Mobile-first access for roster lookup, patrol scanning, clock in/out, and incidents.</li>
+            <li>Evidence capture with live camera support, SOS alerts, and personal shift visibility.</li>
+            <li>Leave request submission with status updates from the field.</li>
+          </ul>
+          <button type="button" class="btn btn-success" data-portal-role="Security Guard / Officer" style="margin-top:0.9rem;">Enter guard portal</button>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:1.25rem; align-items:start;">
+        <div class="role-card">
+          <h3>Login simulation</h3>
+          <form id="portalLoginForm" style="margin-top:1rem;">
+            <input type="text" name="portalUsername" autocomplete="username" value="secureguard-demo" hidden>
+            <div class="form-group">
+              <label for="portalRoleSelect">Portal role</label>
+              <select id="portalRoleSelect">
+                <option>Admin / Owner</option>
+                <option>Security Guard / Officer</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="portalGuardSelect">Assigned officer profile</label>
+              <select id="portalGuardSelect"></select>
+            </div>
+            <div class="form-group">
+              <label for="portalAccessCode">Access code / password</label>
+              <input id="portalAccessCode" type="password" placeholder="Demo access code" autocomplete="current-password">
+            </div>
+            <div class="action-row">
+              <button id="portalLoginBtn" type="submit" class="btn">Secure Login</button>
+              <span id="portalStatus" class="inline-feedback">Select a role to tailor navigation and controls.</span>
+            </div>
+          </form>
+        </div>
+        <div class="role-card">
+          <h3>Live session brief</h3>
+          <div id="portalSessionSummary" class="narrative-panel" style="margin-top:1rem;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Guards / Employee Management -->
-  <div id="guards" class="section active">
+  <div id="guards" class="section">
     <div class="card">
       <h2 style="margin-bottom:1rem;">Employee / Guard Management</h2>
       <div class="action-row">
@@ -624,6 +796,64 @@
     </div>
   </div>
 
+  <div id="leave" class="section">
+    <div class="card">
+      <h2>Leave Management</h2>
+      <p>Track leave balances, approve requests, and give officers a mobile-friendly leave form linked to roster coverage.</p>
+
+      <div id="leaveMetrics" class="metric-grid"></div>
+
+      <div class="grid-2" style="margin-top:1.25rem; align-items:start;">
+        <div class="role-card">
+          <h3>Leave request form</h3>
+          <form id="leaveForm" style="margin-top:1rem;">
+            <div class="form-group">
+              <label for="leaveGuardSelect">Officer</label>
+              <select id="leaveGuardSelect"></select>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="leaveTypeSelect">Leave type</label>
+                <select id="leaveTypeSelect">
+                  <option>Annual Leave</option>
+                  <option>Sick Leave</option>
+                  <option>Family Responsibility</option>
+                  <option>Unpaid Leave</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="leaveCoverageInput">Coverage plan</label>
+                <input id="leaveCoverageInput" type="text" placeholder="Relief pool / replacement officer">
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="leaveStartDate">Start date</label>
+                <input id="leaveStartDate" type="date" required>
+              </div>
+              <div class="form-group">
+                <label for="leaveEndDate">End date</label>
+                <input id="leaveEndDate" type="date" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="leaveReasonInput">Reason</label>
+              <textarea id="leaveReasonInput" rows="4" placeholder="Describe why leave is needed and any handover notes." required></textarea>
+            </div>
+            <div class="action-row">
+              <button type="submit" class="btn btn-success">Submit leave form</button>
+              <span id="leaveStatus" class="inline-feedback">Submit a leave request to add it to the approval queue.</span>
+            </div>
+          </form>
+        </div>
+        <div class="role-card">
+          <h3>Approval queue</h3>
+          <div id="leaveList" class="data-list" style="margin-top:1rem;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Time & Attendance -->
   <div id="attendance" class="section">
     <div class="card">
@@ -654,14 +884,53 @@
   <div id="patrol" class="section">
     <div class="card">
       <h2>Guard Tour / Patrol</h2>
-      <p>Checkpoint coverage with QR/NFC-ready scans, missed-alert escalation, real-time progress, and background location support.</p>
-      <ul style="margin:1rem 0; padding-left:1.2rem;">
-        <li>Site: Sandton Mall – 92% complete</li>
-        <li>Site: Menlyn Park – Missed checkpoint #7 (Rear gate)</li>
-      </ul>
-      <div class="action-row">
-        <button id="startPatrolBtn" type="button" class="btn">Start New Patrol Route</button>
+      <p>Checkpoint coverage with QR/NFC-ready scans, missed-alert escalation, real-time progress, and a smart mobile checkpoint algorithm that recommends the next best checkpoint.</p>
+      <div class="action-row" style="margin-top:1rem;">
+        <div class="toolbar-group">
+          <select id="patrolRouteSelect" class="filter-select"></select>
+          <button id="startPatrolBtn" type="button" class="btn">Start New Patrol Route</button>
+        </div>
         <span id="patrolStatus" class="inline-feedback">Start a patrol route to simulate checkpoint coverage.</span>
+      </div>
+
+      <div class="grid-2" style="margin-top:1.25rem; align-items:start;">
+        <div class="smart-panel">
+          <h3>SpectraRoute checkpoint engine</h3>
+          <p class="inline-feedback" style="margin-top:0.45rem;">Routes are sequenced using risk priority, zone spread, and scan-proof richness to keep the tour innovative and mobile-first.</p>
+          <div id="patrolSmartEngine" class="narrative-panel" style="margin-top:1rem;"></div>
+          <div id="patrolCheckpointList" style="margin-top:1rem;"></div>
+        </div>
+        <div class="smart-panel">
+          <h3>Create new checkpoint route</h3>
+          <form id="patrolRouteForm" style="margin-top:1rem;">
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="patrolRouteSiteInput">Site / route name</label>
+                <input id="patrolRouteSiteInput" type="text" placeholder="e.g. Waterfront Estate" required>
+              </div>
+              <div class="form-group">
+                <label for="patrolRouteModeSelect">Algorithm mode</label>
+                <select id="patrolRouteModeSelect">
+                  <option>Risk-first sweep</option>
+                  <option>Perimeter pulse</option>
+                  <option>Asset protection spiral</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="patrolRouteOfficerSelect">Assigned officer</label>
+              <select id="patrolRouteOfficerSelect"></select>
+            </div>
+            <div class="form-group">
+              <label for="patrolCheckpointInput">Checkpoint list</label>
+              <textarea id="patrolCheckpointInput" rows="6" placeholder="North Gate | Exterior | Critical&#10;Retail Atrium | Interior | High&#10;Loading Bay | Logistics | Medium" required></textarea>
+            </div>
+            <div class="action-row">
+              <button type="submit" id="createPatrolRouteBtn" class="btn btn-success">Create smart route</button>
+              <span id="patrolRouteStatus" class="inline-feedback">Create a route to produce a new checkpoint tour instantly.</span>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   </div>
@@ -759,9 +1028,22 @@
   <div id="reports" class="section">
     <div class="card">
       <h2>Reporting & Analytics</h2>
-      <p>Dashboards, compliance reports, PDF/Excel export, and read-only reporting views for client stakeholders.</p>
+      <p>Dashboards, compliance reports, PDF/Excel export, and an advanced smart report generator that composes operational intelligence from live activity.</p>
       <div class="action-row">
-        <button id="generateReportBtn" type="button" class="btn">Generate March Compliance Report</button>
+        <div class="toolbar-group">
+          <select id="reportAudienceSelect" class="filter-select">
+            <option>Admin / Owner</option>
+            <option>Client / Site Manager</option>
+            <option>Security Guard / Officer</option>
+          </select>
+          <select id="reportFocusSelect" class="filter-select">
+            <option>Operational Intelligence</option>
+            <option>Compliance & Audit</option>
+            <option>Workforce Health</option>
+            <option>Incident Escalation</option>
+          </select>
+          <button id="generateReportBtn" type="button" class="btn">Generate Smart Report</button>
+        </div>
         <span id="reportStatus" class="inline-feedback">Generate a compliance snapshot for client reporting.</span>
       </div>
 
@@ -785,6 +1067,17 @@
             </div>
             <span id="firebaseStatus" class="inline-feedback">Local demo mode active. Add Firebase config to sync data.</span>
           </div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:1.25rem; align-items:start;">
+        <div class="role-card">
+          <h3>Intelligent narrative</h3>
+          <div id="reportNarrative" class="narrative-panel" style="margin-top:1rem;"></div>
+        </div>
+        <div class="role-card">
+          <h3>Recommended actions</h3>
+          <div id="reportRecommendations" class="document-list" style="margin-top:1rem;"></div>
         </div>
       </div>
 
@@ -959,6 +1252,15 @@
             <label for="clockInPhotoInput">Clock-in photo</label>
             <input id="clockInPhotoInput" type="file" accept="image/*" capture="environment">
             <small id="clockInPhotoStatus" style="display:block; margin-top:0.4rem; color:var(--text-light);">No photo captured yet.</small>
+            <div class="camera-shell" style="margin-top:0.85rem;">
+              <video id="clockInCamera" autoplay playsinline muted hidden></video>
+              <canvas id="clockInCanvas"></canvas>
+              <img id="clockInPhotoPreview" alt="Clock-in proof preview" hidden>
+              <div class="action-buttons">
+                <button type="button" id="startCameraBtn" class="btn btn-small">Open Camera</button>
+                <button type="button" id="capturePhotoBtn" class="btn btn-small btn-success">Capture Live Photo</button>
+              </div>
+            </div>
           </div>
         </div>
         <div class="action-row" style="margin-top:1rem;">
@@ -981,6 +1283,20 @@
     const LOCATION_TOKEN_SPLIT_PATTERN = /[^a-z0-9]+/;
     const GPS_TIMEOUT_MS = 10000;
     const GPS_MAX_AGE_MS = 0;
+    const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
+    const CAMERA_JPEG_QUALITY = 0.92;
+    const LIVE_CAMERA_FILE_PREFIX = 'live-camera';
+    const PATROL_MODE_WEIGHTS = {
+      'Risk-first sweep': { perimeter: 2, default: 1.2 },
+      'Perimeter pulse': { perimeter: 3, default: 1 },
+      'Asset protection spiral': { operations: 2.8, default: 1.1 }
+    };
+    const REPORT_RISK_WEIGHTS = {
+      incident: 18,
+      pendingDocument: 8,
+      leaveRequest: 6,
+      checkpointRisk: 4
+    };
     const guardPipeline = [
       {
         id: 'SG-155',
@@ -1026,7 +1342,66 @@
       { title: 'Retail Support • Rosebank', dayOffset: 4, startHour: 12, endHour: 20, color: '#8b5cf6' },
       { title: 'Night Relief • Midrand', dayOffset: 5, startHour: 18, endHour: 23, color: '#10b981' }
     ];
-    const defaultPatrolProgress = { active: false, currentCheckpoint: 0, totalCheckpoints: 8, site: 'Sandton Mall' };
+    const defaultPatrolRoutes = [
+      {
+        id: 'ROUTE-SANDTON',
+        site: 'Sandton Mall',
+        mode: 'Risk-first sweep',
+        officerId: 'SG-042',
+        checkpoints: [
+          { id: 'CP-SAN-01', name: 'Command Centre', zone: 'Operations', risk: 'Critical', scanType: 'QR + GPS' },
+          { id: 'CP-SAN-02', name: 'North Gate', zone: 'Perimeter', risk: 'High', scanType: 'NFC + GPS' },
+          { id: 'CP-SAN-03', name: 'Loading Bay', zone: 'Logistics', risk: 'High', scanType: 'QR + Photo' },
+          { id: 'CP-SAN-04', name: 'Parking Deck 2', zone: 'Exterior', risk: 'Medium', scanType: 'QR' }
+        ]
+      },
+      {
+        id: 'ROUTE-MIDRAND',
+        site: 'Midrand Logistics Park',
+        mode: 'Perimeter pulse',
+        officerId: 'SG-119',
+        checkpoints: [
+          { id: 'CP-MID-01', name: 'Truck Gate', zone: 'Perimeter', risk: 'Critical', scanType: 'QR + GPS' },
+          { id: 'CP-MID-02', name: 'Warehouse Aisle 7', zone: 'Interior', risk: 'High', scanType: 'NFC' },
+          { id: 'CP-MID-03', name: 'Generator Yard', zone: 'Utilities', risk: 'Medium', scanType: 'QR + Photo' },
+          { id: 'CP-MID-04', name: 'Control Room Door', zone: 'Operations', risk: 'High', scanType: 'QR + GPS' }
+        ]
+      }
+    ];
+    const defaultPatrolProgress = {
+      active: false,
+      currentCheckpoint: 0,
+      totalCheckpoints: 0,
+      site: 'Sandton Mall',
+      routeId: 'ROUTE-SANDTON',
+      readyCheckpointId: '',
+      completedCheckpointIds: [],
+      lastCheckpointName: '',
+      lastScanTime: '',
+      algorithmMode: 'Risk-first sweep'
+    };
+    const defaultLeaveRequests = [
+      {
+        id: 'LEAVE-1001',
+        guardId: 'SG-087',
+        type: 'Annual Leave',
+        startDate: '2026-03-20',
+        endDate: '2026-03-22',
+        reason: 'Family event out of province.',
+        coverage: 'Ayanda Nkosi from relief pool',
+        status: 'Pending'
+      },
+      {
+        id: 'LEAVE-1002',
+        guardId: 'SG-119',
+        type: 'Sick Leave',
+        startDate: '2026-03-15',
+        endDate: '2026-03-16',
+        reason: 'Medical recovery window.',
+        coverage: 'Lerato Dlamini covering CCTV overlap',
+        status: 'Approved'
+      }
+    ];
 
     let guardData = [
       {
@@ -1128,7 +1503,10 @@
     let panicAlertActive = false;
     let reportGenerated = false;
     let attendanceSessions = {};
+    let patrolRoutes = clonePatrolRoutes(defaultPatrolRoutes);
     let patrolProgress = { ...defaultPatrolProgress };
+    let selectedPatrolRouteId = defaultPatrolRoutes[0].id;
+    let leaveRequests = defaultLeaveRequests.map(request => ({ ...request }));
     let activityFeed = [];
     let firebaseDb = null;
     let firebaseSyncEnabled = false;
@@ -1136,6 +1514,12 @@
     let pendingClockInGuardId = '';
     let pendingClockInGps = null;
     let pendingClockInPhotoPreview = '';
+    let pendingClockInPhotoName = '';
+    let pendingClockInPhotoSource = '';
+    let pendingClockInCameraStream = null;
+    let currentPortalRole = 'Admin / Owner';
+    let currentPortalGuardId = 'SG-042';
+    let patrolRouteStatusPinned = false;
 
     const localStateStorageKey = 'secureguard-dashboard-state-v2';
     const firebaseConfigStorageKey = 'secureguard-firebase-config-v1';
@@ -1223,6 +1607,30 @@
 
     function formatSiteSummary(site) {
       return `${site.name} – ${site.guardCount} guards • ${site.postOrders}`;
+    }
+
+    function getStartOfLocalDay(value = new Date()) {
+      const date = new Date(value);
+      date.setHours(0, 0, 0, 0);
+      return date;
+    }
+
+    function parseLocalDateInput(value) {
+      if (!value) {
+        return null;
+      }
+      const [year, month, day] = value.split('-').map(Number);
+      if (!year || !month || !day) {
+        return null;
+      }
+      return new Date(year, month - 1, day);
+    }
+
+    function clonePatrolRoutes(routes) {
+      return routes.map(route => ({
+        ...route,
+        checkpoints: Array.isArray(route.checkpoints) ? route.checkpoints.map(checkpoint => ({ ...checkpoint })) : []
+      }));
     }
 
     function normalizeSite(site, index = 0) {
@@ -1364,17 +1772,245 @@
       });
     }
 
+    function getCurrentPortalGuard() {
+      return guardData.find(guard => guard.id === currentPortalGuardId) || guardData[0];
+    }
+
+    function getRoleTabs(role) {
+      return role === 'Security Guard / Officer'
+        ? ['portal', 'scheduling', 'leave', 'attendance', 'patrol', 'incidents']
+        : ['portal', 'guards', 'scheduling', 'leave', 'attendance', 'patrol', 'incidents', 'sites', 'reports', 'platform'];
+    }
+
+    function showTab(tabId) {
+      const targetTab = document.querySelector(`nav.tabs button[data-tab="${tabId}"]`);
+      if (!targetTab || targetTab.hidden) {
+        return;
+      }
+
+      document.querySelectorAll('nav.tabs button').forEach(button => button.classList.remove('active'));
+      targetTab.classList.add('active');
+      document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
+      document.getElementById(tabId)?.classList.add('active');
+
+      if (tabId === 'scheduling') {
+        ensureCalendar();
+      }
+    }
+
+    function applyRoleAccess() {
+      const allowedTabs = new Set(getRoleTabs(currentPortalRole));
+      let activeTabAllowed = false;
+
+      document.querySelectorAll('nav.tabs button').forEach(button => {
+        const isAllowed = allowedTabs.has(button.dataset.tab);
+        button.hidden = !isAllowed;
+        if (button.classList.contains('active') && isAllowed) {
+          activeTabAllowed = true;
+        }
+      });
+
+      if (!activeTabAllowed) {
+        showTab('portal');
+      }
+    }
+
+    function renderPortalGuardOptions() {
+      if (!guardData.some(guard => guard.id === currentPortalGuardId)) {
+        currentPortalGuardId = guardData[0]?.id || '';
+      }
+      const guardOptions = guardData.map(guard => `<option value="${escapeHtml(guard.id)}">${escapeHtml(buildAttendanceLabel(guard))}</option>`).join('');
+      document.getElementById('portalGuardSelect').innerHTML = guardOptions;
+      document.getElementById('leaveGuardSelect').innerHTML = guardOptions;
+      document.getElementById('patrolRouteOfficerSelect').innerHTML = guardOptions;
+
+      if (guardData.some(guard => guard.id === currentPortalGuardId)) {
+        document.getElementById('portalGuardSelect').value = currentPortalGuardId;
+        document.getElementById('leaveGuardSelect').value = currentPortalGuardId;
+      }
+    }
+
+    function renderPortalState() {
+      const roleSelect = document.getElementById('portalRoleSelect');
+      const guardSelect = document.getElementById('portalGuardSelect');
+      const currentGuard = getCurrentPortalGuard();
+      const guardMode = currentPortalRole === 'Security Guard / Officer';
+
+      roleSelect.value = currentPortalRole;
+      guardSelect.value = currentPortalGuardId;
+      guardSelect.disabled = !guardMode;
+      document.getElementById('leaveGuardSelect').value = currentPortalGuardId;
+      document.getElementById('leaveGuardSelect').disabled = guardMode;
+      document.querySelectorAll('#patrolRouteForm input, #patrolRouteForm select, #patrolRouteForm textarea, #createPatrolRouteBtn').forEach(field => {
+        field.disabled = guardMode;
+      });
+      if (guardMode) {
+        document.getElementById('patrolRouteStatus').textContent = 'Route creation is reserved for Admin / Owner. Guards can still run and scan the assigned route.';
+      } else if (!patrolRouteStatusPinned) {
+        document.getElementById('patrolRouteStatus').textContent = 'Create a route to produce a new checkpoint tour instantly.';
+      }
+
+      document.getElementById('portalSessionBadge').textContent = guardMode
+        ? `Portal: Guard mobile (${currentGuard?.name || 'Officer'})`
+        : 'Portal: Admin / Owner';
+
+      document.getElementById('portalSessionSummary').textContent = guardMode
+        ? `${currentGuard?.name || 'Officer'} is using the mobile guard portal.\n\nVisible tools now focus on roster lookup, clock-in/out, patrol scans, incident capture, SOS alerts, and leave requests.\n\nPrimary shift: ${currentGuard?.shift || 'No shift linked'}\nPrimary site: ${currentGuard?.site || 'Unassigned'}`
+        : `Admin / Owner mode is active.\n\nThis session exposes the full command surface: guard administration, site setup, billing-ready operations, live reporting, audit activity, and workforce governance.\n\nCurrent oversight: ${guardData.length} guards, ${siteData.length} client sites, ${incidentData.length} incidents, ${leaveRequests.length} leave records.`;
+
+      document.getElementById('portalStatus').textContent = guardMode
+        ? 'Guard portal activated with mobile-first tools and personal officer context.'
+        : 'Admin portal activated with complete platform control across teams, sites, and reporting.';
+
+      applyRoleAccess();
+    }
+
+    function normalizeCheckpointLine(line, index) {
+      const [name = '', zone = 'General', risk = 'Medium'] = String(line).split('|').map(part => part.trim());
+      return {
+        id: createId(`CP${index + 1}`),
+        name: name || `Checkpoint ${index + 1}`,
+        zone: zone || 'General',
+        risk: risk || 'Medium',
+        scanType: ['Critical', 'High'].includes(risk || 'Medium') ? 'QR + GPS' : 'QR + Photo'
+      };
+    }
+
+    function getSelectedPatrolRoute() {
+      return patrolRoutes.find(route => route.id === selectedPatrolRouteId) || patrolRoutes[0];
+    }
+
+    function getRiskScore(risk) {
+      return {
+        Critical: 5,
+        High: 4,
+        Medium: 3,
+        Low: 2
+      }[risk] || 1;
+    }
+
+    function buildCheckpointPriority(route, checkpoint, index) {
+      const modeConfig = PATROL_MODE_WEIGHTS[route.mode] || { perimeter: 1, operations: 1, default: 1 };
+      const zoneLabel = checkpoint.zone.toLowerCase();
+      const modeWeight = route.mode === 'Asset protection spiral'
+        ? ((zoneLabel.includes('operations') || zoneLabel.includes('interior')) ? modeConfig.operations : modeConfig.default)
+        : (zoneLabel.includes('perimeter') ? modeConfig.perimeter : modeConfig.default);
+      const scanBoost = checkpoint.scanType.includes('GPS') ? 0.8 : checkpoint.scanType.includes('Photo') ? 0.5 : 0.2;
+      // SpectraRoute prioritises higher-risk checkpoints first (risk * 10), then nudges
+      // the sequence with route-mode weighting and proof-rich scans while slightly
+      // reducing later checkpoints so the initial site layout still influences ordering.
+      return (getRiskScore(checkpoint.risk) * 10) + modeWeight + scanBoost - (index * 0.15);
+    }
+
+    function getPatrolPlan(route = getSelectedPatrolRoute()) {
+      if (!route) {
+        return { orderedCheckpoints: [], nextCheckpoint: null };
+      }
+
+      const completed = new Set(patrolProgress.routeId === route.id ? patrolProgress.completedCheckpointIds : []);
+      const orderedCheckpoints = route.checkpoints
+        .map((checkpoint, index) => ({
+          ...checkpoint,
+          priority: buildCheckpointPriority(route, checkpoint, index),
+          completed: completed.has(checkpoint.id),
+          ready: patrolProgress.routeId === route.id && patrolProgress.readyCheckpointId === checkpoint.id
+        }))
+        .sort((left, right) => right.priority - left.priority);
+
+      return {
+        orderedCheckpoints,
+        nextCheckpoint: orderedCheckpoints.find(checkpoint => !checkpoint.completed) || null
+      };
+    }
+
+    function renderPatrolRouteOptions() {
+      const routeSelect = document.getElementById('patrolRouteSelect');
+      routeSelect.innerHTML = patrolRoutes.map(route => `<option value="${escapeHtml(route.id)}">${escapeHtml(route.site)} • ${escapeHtml(route.mode)}</option>`).join('');
+      if (patrolRoutes.some(route => route.id === selectedPatrolRouteId)) {
+        routeSelect.value = selectedPatrolRouteId;
+      }
+    }
+
+    function renderLeavePanel() {
+      const leaveMetrics = document.getElementById('leaveMetrics');
+      const pending = leaveRequests.filter(request => request.status === 'Pending').length;
+      const approved = leaveRequests.filter(request => request.status === 'Approved').length;
+      const thisWeek = leaveRequests.filter(request => {
+        const today = getStartOfLocalDay();
+        const start = parseLocalDateInput(request.startDate);
+        return start instanceof Date && Number.isFinite(start.getTime()) && start >= today && (start - today) <= WEEK_IN_MS;
+      }).length;
+
+      leaveMetrics.innerHTML = [
+        { label: 'Pending approvals', value: String(pending), note: 'Requests still awaiting supervisor action' },
+        { label: 'Approved leave', value: String(approved), note: 'Confirmed and ready for coverage planning' },
+        { label: 'Upcoming this week', value: String(thisWeek), note: 'Starts within the next 7 days' },
+        { label: 'Officer access', value: currentPortalRole === 'Security Guard / Officer' ? 'Mobile' : 'Admin', note: 'Portal context currently driving leave actions' }
+      ].map(item => `
+        <div class="metric-item">
+          <strong>${escapeHtml(item.value)}</strong>
+          <div>${escapeHtml(item.label)}</div>
+          <small>${escapeHtml(item.note)}</small>
+        </div>
+      `).join('');
+
+      const leaveList = document.getElementById('leaveList');
+      leaveList.innerHTML = leaveRequests.length ? leaveRequests.map(request => {
+        const guard = guardData.find(entry => entry.id === request.guardId);
+        return `
+          <div class="data-row">
+            <div class="action-row">
+              <div>
+                <h4>${escapeHtml(request.type)} • ${escapeHtml(guard?.name || request.guardId)}</h4>
+                <small>${escapeHtml(request.startDate)} → ${escapeHtml(request.endDate)} • ${escapeHtml(request.coverage || 'Coverage pending')}</small>
+              </div>
+              <span class="status ${request.status === 'Approved' ? 'status-resolved' : request.status === 'Declined' ? 'status-off' : 'status-open'}">${escapeHtml(request.status)}</span>
+            </div>
+            <div class="meta-list">
+              <div><strong>Reason:</strong> ${escapeHtml(request.reason)}</div>
+              <div><strong>Officer site:</strong> ${escapeHtml(guard?.site || 'Unassigned')}</div>
+            </div>
+            ${currentPortalRole === 'Admin / Owner' ? `
+              <div class="action-buttons">
+                <button type="button" class="btn btn-small leave-status-btn" data-leave-id="${escapeHtml(request.id)}" data-status="Approved">Approve</button>
+                <button type="button" class="btn btn-small btn-danger leave-status-btn" data-leave-id="${escapeHtml(request.id)}" data-status="Declined">Decline</button>
+              </div>
+            ` : '<div class="inline-feedback" style="margin-top:0.85rem;">Approval actions are reserved for Admin / Owner access.</div>'}
+          </div>
+        `;
+      }).join('') : '<div class="empty-state" role="status">No leave requests recorded yet.</div>';
+
+      leaveList.querySelectorAll('.leave-status-btn').forEach(button => {
+        button.addEventListener('click', () => {
+          const leaveRequest = leaveRequests.find(request => request.id === button.dataset.leaveId);
+          if (!leaveRequest) {
+            return;
+          }
+          leaveRequest.status = button.dataset.status;
+          document.getElementById('leaveStatus').textContent = `${leaveRequest.type} request updated to ${leaveRequest.status}.`;
+          addActivity('Leave request updated', `${leaveRequest.id} changed to ${leaveRequest.status}.`);
+          renderLeavePanel();
+          renderPortalState();
+          renderReportPreview();
+          saveDashboardState();
+        });
+      });
+    }
+
     function renderAttendanceOptions() {
       const select = document.getElementById('attendanceGuardSelect');
       const previousValue = select.value;
-      select.innerHTML = guardData.map(guard => `<option>${escapeHtml(buildAttendanceLabel(guard))}</option>`).join('');
+      const visibleGuards = currentPortalRole === 'Security Guard / Officer'
+        ? guardData.filter(guard => guard.id === currentPortalGuardId)
+        : guardData;
+      select.innerHTML = visibleGuards.map(guard => `<option>${escapeHtml(buildAttendanceLabel(guard))}</option>`).join('');
 
-      if (guardData.some(guard => buildAttendanceLabel(guard) === previousValue)) {
+      if (visibleGuards.some(guard => buildAttendanceLabel(guard) === previousValue)) {
         select.value = previousValue;
       }
 
-      if (!select.value && guardData[0]) {
-        select.value = buildAttendanceLabel(guardData[0]);
+      if (!select.value && visibleGuards[0]) {
+        select.value = buildAttendanceLabel(visibleGuards[0]);
       }
     }
 
@@ -1398,7 +2034,10 @@
           <div><strong>Clock-in time:</strong> ${escapeHtml(session.clockInTime || 'Not yet recorded')}</div>
           <div><strong>Clock-out time:</strong> ${escapeHtml(session.clockOutTime || 'Still clocked in')}</div>
           <div><strong>GPS:</strong> ${escapeHtml(gpsDisplayText)}</div>
+          <div><strong>Direct location:</strong> ${escapeHtml(session.gps?.locationHint || selectedGuard.site)}</div>
+          <div><strong>Heading / speed:</strong> ${escapeHtml(session.gps?.movement || 'Device heading unavailable')}</div>
           <div><strong>Photo:</strong> ${escapeHtml(session.photoName || 'No photo captured')}</div>
+          <div><strong>Capture source:</strong> ${escapeHtml(session.photoSource || 'File upload')}</div>
         </div>
         ${session.photoPreview ? `<img src="${session.photoPreview}" alt="Clock-in proof for ${escapeHtml(selectedGuard.name)}">` : ''}
       `;
@@ -1473,12 +2112,28 @@
       const escalatedIncidentCount = incidentData.filter(incident => incident.status === 'Escalated').length;
       const pendingDocumentCount = guardData.reduce((total, guard) => total + guard.documents.reduce((count, document) => count + (document.state !== 'Verified' ? 1 : 0), 0), 0);
       const scheduledShiftCount = calendar ? calendar.getEvents().length : scheduleEvents.length;
+      const pendingLeaveCount = leaveRequests.filter(request => request.status === 'Pending').length;
+      const activePatrolRoute = getSelectedPatrolRoute();
+      const routePlan = getPatrolPlan(activePatrolRoute);
+      const audience = document.getElementById('reportAudienceSelect')?.value || 'Admin / Owner';
+      const focus = document.getElementById('reportFocusSelect')?.value || 'Operational Intelligence';
+      const riskIndex = Math.min(
+        100,
+        (activeIncidentCount * REPORT_RISK_WEIGHTS.incident) +
+        (pendingDocumentCount * REPORT_RISK_WEIGHTS.pendingDocument) +
+        (pendingLeaveCount * REPORT_RISK_WEIGHTS.leaveRequest) +
+        (routePlan.nextCheckpoint ? getRiskScore(routePlan.nextCheckpoint.risk) * REPORT_RISK_WEIGHTS.checkpointRisk : 0)
+      );
+      const operationalHealth = Math.max(0, 100 - riskIndex);
 
       document.getElementById('reportPreview').innerHTML = [
         { label: 'On duty now', value: `${onDutyCount}/${guardData.length}`, note: 'Guards currently working or patrolling' },
         { label: 'Active incidents', value: String(activeIncidentCount), note: `${escalatedIncidentCount} escalated for follow-up` },
         { label: 'Scheduled shifts', value: String(scheduledShiftCount), note: 'Visible in the current roster view' },
         { label: 'Pending documents', value: String(pendingDocumentCount), note: 'Compliance uploads still awaiting review' },
+        { label: 'Leave queue', value: String(pendingLeaveCount), note: 'Pending leave forms awaiting approval' },
+        { label: 'Risk index', value: `${riskIndex}/100`, note: `Smart score tuned for ${focus}` },
+        { label: 'Operational health', value: `${operationalHealth}%`, note: `Audience: ${audience}` },
         { label: 'Client sites', value: String(siteData.length), note: 'Live locations in the operating portfolio' },
         { label: 'Report mode', value: reportGenerated ? 'Ready' : 'Preview', note: reportGenerated ? 'Summary locked for export' : 'Generate a report to refresh the narrative' }
       ].map(item => `
@@ -1488,16 +2143,65 @@
           <small>${escapeHtml(item.note)}</small>
         </div>
       `).join('');
+
+      document.getElementById('reportNarrative').textContent = `${focus} summary for ${audience}\n\n` +
+        `Coverage is currently ${onDutyCount}/${guardData.length} guards on duty or patrolling, with ${activeIncidentCount} active incident(s) and ${pendingLeaveCount} pending leave request(s). ` +
+        `${reportGenerated ? 'The export snapshot is locked for review.' : 'The dashboard is still in live-preview mode, so metrics update instantly.'}\n\n` +
+        `The current patrol engine is prioritising ${routePlan.nextCheckpoint ? `${routePlan.nextCheckpoint.name} (${routePlan.nextCheckpoint.risk})` : 'completed checkpoint coverage'} at ${activePatrolRoute?.site || 'the active site'}. ` +
+        `Pending compliance actions total ${pendingDocumentCount}, while roster visibility shows ${scheduledShiftCount} scheduled shift(s).`;
+
+      document.getElementById('reportRecommendations').innerHTML = [
+        `${escalatedIncidentCount ? `Escalate supervisor review for ${escalatedIncidentCount} escalated incident(s).` : 'No escalated incidents currently need executive intervention.'}`,
+        `${pendingLeaveCount ? `Approve or re-plan ${pendingLeaveCount} leave request(s) before the next roster publish.` : 'Leave pipeline is stable with no pending approvals.'}`,
+        `${routePlan.nextCheckpoint ? `Push the patrol team toward ${routePlan.nextCheckpoint.name} using the ${activePatrolRoute.mode} sequence.` : 'All active route checkpoints are complete; create a new route to maintain visibility.'}`
+      ].map(item => `
+        <div class="document-item">
+          <strong>Recommendation</strong>
+          <small>${escapeHtml(item)}</small>
+        </div>
+      `).join('');
     }
 
     function renderPatrolState() {
       const patrolButton = document.getElementById('startPatrolBtn');
-      patrolButton.textContent = patrolProgress.active ? 'Scan Next Checkpoint' : 'Start New Patrol Route';
+      const route = getSelectedPatrolRoute();
+      const { orderedCheckpoints, nextCheckpoint } = getPatrolPlan(route);
+      const completedCount = patrolProgress.routeId === route?.id ? patrolProgress.completedCheckpointIds.length : 0;
+      patrolButton.textContent = patrolProgress.active ? 'Scan Recommended Checkpoint' : 'Start New Patrol Route';
 
-      if (patrolProgress.active && patrolProgress.currentCheckpoint > 0) {
-        document.getElementById('patrolStatus').textContent = `Checkpoint ${patrolProgress.currentCheckpoint} of ${patrolProgress.totalCheckpoints} cleared for ${patrolProgress.site}.`;
+      if (route) {
+        document.getElementById('patrolRouteSelect').value = route.id;
+      }
+
+      document.getElementById('patrolSmartEngine').textContent = route
+        ? `Route: ${route.site}\nMode: ${route.mode}\nAssigned officer: ${(guardData.find(guard => guard.id === route.officerId)?.name) || 'Unassigned'}\n\n` +
+          `${nextCheckpoint ? `Next smart checkpoint: ${nextCheckpoint.name} (${nextCheckpoint.zone}) with ${nextCheckpoint.scanType} proof.` : 'All checkpoints complete. Create or restart a route for the next patrol cycle.'}\n` +
+          `Completed: ${completedCount}/${route.checkpoints.length}\n` +
+          `Last scan: ${patrolProgress.lastCheckpointName ? `${patrolProgress.lastCheckpointName} at ${patrolProgress.lastScanTime}` : 'No checkpoint scanned in this cycle.'}`
+        : 'Create a new route to unlock the SpectraRoute patrol engine.';
+
+      document.getElementById('patrolCheckpointList').innerHTML = orderedCheckpoints.length
+        ? `<div>${orderedCheckpoints.map(checkpoint => `
+            <span class="checkpoint-chip ${checkpoint.completed ? 'complete' : checkpoint.ready || checkpoint.id === nextCheckpoint?.id ? 'active' : ''}">
+              ${escapeHtml(checkpoint.name)} • ${escapeHtml(checkpoint.risk)}
+            </span>
+          `).join('')}</div>
+          <ul class="checkpoint-list" style="margin-top:1rem;">
+            ${orderedCheckpoints.map((checkpoint, index) => `
+              <li>
+                <strong>${escapeHtml(String(index + 1))}. ${escapeHtml(checkpoint.name)}</strong> — ${escapeHtml(checkpoint.zone)} • ${escapeHtml(checkpoint.scanType)}
+                <small>${escapeHtml(checkpoint.completed ? 'Completed in current route cycle' : checkpoint.id === nextCheckpoint?.id ? 'Recommended next scan by SpectraRoute' : 'Queued for later scan')}</small>
+              </li>
+            `).join('')}
+          </ul>`
+        : '<div class="empty-state" role="status">No checkpoints are configured for the selected route.</div>';
+
+      if (patrolProgress.active && nextCheckpoint) {
+        document.getElementById('patrolStatus').textContent = `${nextCheckpoint.name} is the next recommended checkpoint for ${route.site}. ${completedCount}/${route.checkpoints.length} completed.`;
       } else if (!patrolProgress.active && patrolProgress.currentCheckpoint === 0) {
         document.getElementById('patrolStatus').textContent = 'Start a patrol route to simulate checkpoint coverage.';
+      } else if (!nextCheckpoint && route) {
+        document.getElementById('patrolStatus').textContent = `Patrol route completed for ${route.site}. All ${route.checkpoints.length} checkpoints were covered.`;
       }
     }
 
@@ -1735,6 +2439,9 @@
         guardData,
         incidentData,
         siteData,
+        patrolRoutes,
+        selectedPatrolRouteId,
+        leaveRequests,
         selectedGuardId,
         scheduleEvents: scheduleEvents.map(event => ({
           ...event,
@@ -1745,7 +2452,9 @@
         reportGenerated,
         attendanceSessions,
         patrolProgress,
-        activityFeed
+        activityFeed,
+        currentPortalRole,
+        currentPortalGuardId
       };
     }
 
@@ -1769,6 +2478,14 @@
         siteData = state.siteData.map(normalizeSite);
       }
 
+      if (Array.isArray(state.patrolRoutes) && state.patrolRoutes.length) {
+        patrolRoutes = clonePatrolRoutes(state.patrolRoutes);
+      }
+
+      if (Array.isArray(state.leaveRequests) && state.leaveRequests.length) {
+        leaveRequests = state.leaveRequests.map(request => ({ ...request }));
+      }
+
       if (Array.isArray(state.scheduleEvents) && state.scheduleEvents.length) {
         scheduleEvents = state.scheduleEvents.map(normalizeScheduleEvent);
       }
@@ -1780,13 +2497,24 @@
       panicAlertActive = Boolean(state.panicAlertActive);
       reportGenerated = Boolean(state.reportGenerated);
       attendanceSessions = state.attendanceSessions && typeof state.attendanceSessions === 'object' ? state.attendanceSessions : {};
+      selectedPatrolRouteId = typeof state.selectedPatrolRouteId === 'string' ? state.selectedPatrolRouteId : selectedPatrolRouteId;
       patrolProgress = state.patrolProgress && typeof state.patrolProgress === 'object'
         ? { ...defaultPatrolProgress, ...state.patrolProgress }
         : { ...defaultPatrolProgress };
       activityFeed = Array.isArray(state.activityFeed) ? state.activityFeed : activityFeed;
+      currentPortalRole = typeof state.currentPortalRole === 'string' ? state.currentPortalRole : currentPortalRole;
+      currentPortalGuardId = typeof state.currentPortalGuardId === 'string' ? state.currentPortalGuardId : currentPortalGuardId;
 
       if (!guardData.some(guard => guard.id === selectedGuardId)) {
         selectedGuardId = guardData[0]?.id || '';
+      }
+
+      if (!guardData.some(guard => guard.id === currentPortalGuardId)) {
+        currentPortalGuardId = guardData[0]?.id || '';
+      }
+
+      if (!patrolRoutes.some(route => route.id === selectedPatrolRouteId)) {
+        selectedPatrolRouteId = patrolRoutes[0]?.id || '';
       }
 
       return true;
@@ -2003,15 +2731,7 @@
 
     document.querySelectorAll('nav.tabs button').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('nav.tabs button').forEach(button => button.classList.remove('active'));
-        btn.classList.add('active');
-
-        document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
-        document.getElementById(btn.dataset.tab).classList.add('active');
-
-        if (btn.dataset.tab === 'scheduling') {
-          ensureCalendar();
-        }
+        showTab(btn.dataset.tab);
       });
     });
 
@@ -2503,14 +3223,78 @@
       saveDashboardState();
     }
 
+    function setClockInPhotoPreview(preview, name, source) {
+      pendingClockInPhotoPreview = preview || '';
+      pendingClockInPhotoName = name || '';
+      pendingClockInPhotoSource = source || '';
+      const previewImage = document.getElementById('clockInPhotoPreview');
+      previewImage.hidden = !pendingClockInPhotoPreview;
+      previewImage.src = pendingClockInPhotoPreview || '';
+      document.getElementById('clockInPhotoStatus').textContent = pendingClockInPhotoName || 'No photo captured yet.';
+    }
+
+    function stopClockInCamera() {
+      const video = document.getElementById('clockInCamera');
+      if (pendingClockInCameraStream) {
+        pendingClockInCameraStream.getTracks().forEach(track => track.stop());
+        pendingClockInCameraStream = null;
+      }
+      video.srcObject = null;
+      video.hidden = true;
+    }
+
+    async function startClockInCamera() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        document.getElementById('clockInModalStatus').textContent = 'Live camera capture is unavailable in this browser. You can still upload a real photo.';
+        return;
+      }
+
+      try {
+        stopClockInCamera();
+        pendingClockInCameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+        const video = document.getElementById('clockInCamera');
+        video.srcObject = pendingClockInCameraStream;
+        video.hidden = false;
+        document.getElementById('clockInModalStatus').textContent = 'Camera ready. Frame the officer and capture a live photo.';
+      } catch (error) {
+        document.getElementById('clockInModalStatus').textContent = `Camera access failed: ${error.message}`;
+      }
+    }
+
+    function captureClockInPhoto() {
+      const video = document.getElementById('clockInCamera');
+      if (!pendingClockInCameraStream || !video.videoWidth || !video.videoHeight) {
+        document.getElementById('clockInModalStatus').textContent = 'Open the camera and wait for the live feed before capturing a photo.';
+        return;
+      }
+
+      const canvas = document.getElementById('clockInCanvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext('2d');
+      if (!context) {
+        document.getElementById('clockInModalStatus').textContent = 'Live photo capture is unavailable right now. You can still upload a photo manually.';
+        return;
+      }
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      try {
+        setClockInPhotoPreview(canvas.toDataURL('image/jpeg', CAMERA_JPEG_QUALITY), `${LIVE_CAMERA_FILE_PREFIX}-${Date.now()}.jpg`, 'Live camera capture');
+      } catch (error) {
+        document.getElementById('clockInModalStatus').textContent = 'The live photo could not be saved. Try again or upload a photo manually.';
+        return;
+      }
+      document.getElementById('clockInPhotoInput').value = '';
+      document.getElementById('clockInModalStatus').textContent = 'Live photo captured successfully. Confirm clock-in when ready.';
+    }
+
     function closeClockInModal() {
       document.getElementById('clockInModal').hidden = true;
       document.getElementById('clockInForm').reset();
-      document.getElementById('clockInPhotoStatus').textContent = 'No photo captured yet.';
+      setClockInPhotoPreview('', '', '');
       document.getElementById('clockInModalStatus').textContent = 'Allow GPS access and capture a photo to continue.';
       pendingClockInGuardId = '';
       pendingClockInGps = null;
-      pendingClockInPhotoPreview = '';
+      stopClockInCamera();
     }
 
     function updateClockInGpsStatus(message) {
@@ -2518,8 +3302,9 @@
     }
 
     function requestClockInGps() {
+      const activeGuard = guardData.find(guard => guard.id === pendingClockInGuardId);
       if (!navigator.geolocation) {
-        pendingClockInGps = { label: 'GPS unavailable in this browser.' };
+        pendingClockInGps = { label: 'GPS unavailable in this browser.', locationHint: activeGuard?.site || 'Site unknown', movement: 'No movement data available' };
         updateClockInGpsStatus(pendingClockInGps.label);
         document.getElementById('clockInModalStatus').textContent = 'GPS is unavailable in this browser; you can still attach a photo.';
         return;
@@ -2530,16 +3315,23 @@
         const latitude = position.coords.latitude.toFixed(5);
         const longitude = position.coords.longitude.toFixed(5);
         const accuracy = Math.round(position.coords.accuracy);
+        const heading = Number.isFinite(position.coords.heading) ? `${Math.round(position.coords.heading)}°` : 'Heading unavailable';
+        const speed = Number.isFinite(position.coords.speed) ? `${position.coords.speed.toFixed(1)} m/s` : 'Speed unavailable';
+        const locationHint = activeGuard?.site || 'Field location';
         pendingClockInGps = {
           latitude,
           longitude,
           accuracy,
+          heading,
+          speed,
+          locationHint,
+          movement: `${heading} • ${speed}`,
           label: `Lat ${latitude}, Lng ${longitude} (±${accuracy}m)`
         };
-        updateClockInGpsStatus(`${pendingClockInGps.label}\nCaptured at ${formatCurrentTime()}`);
+        updateClockInGpsStatus(`${pendingClockInGps.label}\nDirect site match: ${locationHint}\nMovement: ${pendingClockInGps.movement}\nCaptured at ${formatCurrentTime()}`);
         document.getElementById('clockInModalStatus').textContent = 'GPS captured. Add a photo and confirm clock-in.';
       }, error => {
-        pendingClockInGps = { label: `GPS unavailable: ${error.message}` };
+        pendingClockInGps = { label: 'GPS access denied or unavailable.', locationHint: activeGuard?.site || 'Site unknown', movement: 'Device movement unavailable' };
         updateClockInGpsStatus(pendingClockInGps.label);
         document.getElementById('clockInModalStatus').textContent = 'GPS could not be captured automatically. Attach a photo to continue.';
       }, { enableHighAccuracy: true, timeout: GPS_TIMEOUT_MS, maximumAge: GPS_MAX_AGE_MS });
@@ -2548,11 +3340,10 @@
     function openClockInModal(guard) {
       pendingClockInGuardId = guard.id;
       pendingClockInGps = null;
-      pendingClockInPhotoPreview = '';
+      setClockInPhotoPreview('', '', '');
       document.getElementById('clockInGuardName').value = guard.name;
       document.getElementById('clockInTimestamp').value = new Date().toLocaleString('en-ZA');
       updateClockInGpsStatus('Waiting for GPS capture...');
-      document.getElementById('clockInPhotoStatus').textContent = 'No photo captured yet.';
       document.getElementById('clockInModal').hidden = false;
       requestClockInGps();
     }
@@ -2560,11 +3351,15 @@
     function renderAll() {
       renderGuardDirectory();
       renderGuardProfile();
+      renderPortalGuardOptions();
+      renderPortalState();
       renderAttendanceOptions();
       renderAttendancePanel();
       renderRosterList();
       renderSitesList();
       renderIncidentList();
+      renderLeavePanel();
+      renderPatrolRouteOptions();
       renderReportPreview();
       renderActivityFeed();
       renderPatrolState();
@@ -2714,6 +3509,127 @@
     document.getElementById('createRosterBtn').addEventListener('click', () => openEntityModal('shift', 'create'));
     document.getElementById('addSiteBtn').addEventListener('click', () => openEntityModal('site', 'create'));
     document.getElementById('createIncidentBtn').addEventListener('click', () => openEntityModal('incident', 'create'));
+    document.querySelectorAll('[data-portal-role]').forEach(button => {
+      button.addEventListener('click', () => {
+        currentPortalRole = button.dataset.portalRole;
+        if (currentPortalRole === 'Security Guard / Officer') {
+          currentPortalGuardId = document.getElementById('portalGuardSelect').value || currentPortalGuardId;
+        }
+        renderAll();
+        showTab('portal');
+        saveDashboardState();
+      });
+    });
+    document.getElementById('portalRoleSelect').addEventListener('change', event => {
+      const nextRole = event.target.value;
+      currentPortalRole = nextRole;
+      if (nextRole === 'Admin / Owner') {
+        showTab('portal');
+      }
+      renderPortalState();
+      saveDashboardState();
+    });
+    document.getElementById('portalGuardSelect').addEventListener('change', event => {
+      currentPortalGuardId = event.target.value;
+      document.getElementById('leaveGuardSelect').value = currentPortalGuardId;
+      renderPortalState();
+      saveDashboardState();
+    });
+    document.getElementById('portalLoginForm').addEventListener('submit', event => {
+      event.preventDefault();
+      currentPortalRole = document.getElementById('portalRoleSelect').value;
+      currentPortalGuardId = document.getElementById('portalGuardSelect').value || currentPortalGuardId;
+      document.getElementById('portalStatus').textContent = currentPortalRole === 'Security Guard / Officer'
+        ? `${getCurrentPortalGuard()?.name || 'Officer'} signed into the mobile guard portal successfully.`
+        : 'Admin / Owner signed into the full command portal successfully.';
+      addActivity('Portal login', `${currentPortalRole} session activated.`);
+      renderAll();
+      showTab('portal');
+      saveDashboardState();
+    });
+    document.getElementById('patrolRouteSelect').addEventListener('change', event => {
+      selectedPatrolRouteId = event.target.value;
+      patrolProgress = {
+        ...defaultPatrolProgress,
+        routeId: selectedPatrolRouteId,
+        site: getSelectedPatrolRoute()?.site || defaultPatrolProgress.site,
+        algorithmMode: getSelectedPatrolRoute()?.mode || defaultPatrolProgress.algorithmMode
+      };
+      patrolRouteStatusPinned = false;
+      renderPatrolState();
+      renderReportPreview();
+      saveDashboardState();
+    });
+    document.getElementById('patrolRouteForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const site = document.getElementById('patrolRouteSiteInput').value.trim();
+      const mode = document.getElementById('patrolRouteModeSelect').value;
+      const officerId = document.getElementById('patrolRouteOfficerSelect').value;
+      const checkpointLines = document.getElementById('patrolCheckpointInput').value.split('\n').map(line => line.trim()).filter(Boolean);
+
+      if (!site || !checkpointLines.length) {
+        patrolRouteStatusPinned = false;
+        document.getElementById('patrolRouteStatus').textContent = 'Add a site name and at least one checkpoint to create a route.';
+        return;
+      }
+
+      const route = {
+        id: createId('ROUTE'),
+        site,
+        mode,
+        officerId,
+        checkpoints: checkpointLines.map(normalizeCheckpointLine)
+      };
+      patrolRoutes.unshift(route);
+      selectedPatrolRouteId = route.id;
+      patrolProgress = {
+        ...defaultPatrolProgress,
+        routeId: route.id,
+        site: route.site,
+        algorithmMode: route.mode
+      };
+      patrolRouteStatusPinned = true;
+      event.target.reset();
+      document.getElementById('patrolRouteStatus').textContent = `${route.site} route created with ${route.checkpoints.length} smart checkpoints.`;
+      addActivity('Patrol route created', `${route.site} route added with ${route.mode} sequencing.`);
+      renderAll();
+      saveDashboardState();
+    });
+    document.getElementById('leaveForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const startDate = document.getElementById('leaveStartDate').value;
+      const endDate = document.getElementById('leaveEndDate').value;
+      const startDateValue = parseLocalDateInput(startDate);
+      const endDateValue = parseLocalDateInput(endDate);
+      if (!startDate || !endDate || !startDateValue || !endDateValue) {
+        document.getElementById('leaveStatus').textContent = 'Select both a start date and an end date before submitting the leave form.';
+        return;
+      }
+      if (endDateValue < startDateValue) {
+        document.getElementById('leaveStatus').textContent = 'End date must be on or after the selected start date.';
+        return;
+      }
+
+      const guardId = document.getElementById('leaveGuardSelect').value;
+      const leaveRequest = {
+        id: createId('LEAVE'),
+        guardId,
+        type: document.getElementById('leaveTypeSelect').value,
+        startDate,
+        endDate,
+        reason: document.getElementById('leaveReasonInput').value.trim(),
+        coverage: document.getElementById('leaveCoverageInput').value.trim() || 'Coverage planning required',
+        status: 'Pending'
+      };
+      leaveRequests.unshift(leaveRequest);
+      document.getElementById('leaveStatus').textContent = `${leaveRequest.type} leave form submitted successfully for review.`;
+      addActivity('Leave request submitted', `${leaveRequest.id} created for ${(guardData.find(guard => guard.id === guardId)?.name) || guardId}.`);
+      event.target.reset();
+      renderLeavePanel();
+      renderPortalState();
+      renderReportPreview();
+      saveDashboardState();
+    });
 
     document.getElementById('clockInBtn').addEventListener('click', () => {
       const selectedGuard = getSelectedAttendanceGuard();
@@ -2774,34 +3690,67 @@
     });
 
     document.getElementById('startPatrolBtn').addEventListener('click', () => {
+      const route = getSelectedPatrolRoute();
+      const nextCheckpoint = getPatrolPlan(route).nextCheckpoint;
+
+      if (!route) {
+        document.getElementById('patrolStatus').textContent = 'Create a route before starting the patrol engine.';
+        return;
+      }
+
       if (!patrolProgress.active) {
-        patrolProgress.active = true;
-        patrolProgress.currentCheckpoint = 1;
-        document.getElementById('startPatrolBtn').textContent = 'Scan Next Checkpoint';
-        document.getElementById('patrolStatus').textContent = `Patrol started for ${patrolProgress.site}. Checkpoint 1 of ${patrolProgress.totalCheckpoints} is ready for scan.`;
-        addActivity('Patrol started', `${patrolProgress.site} checkpoint route is now active.`);
-      } else if (patrolProgress.currentCheckpoint < patrolProgress.totalCheckpoints) {
-        patrolProgress.currentCheckpoint += 1;
-        document.getElementById('patrolStatus').textContent = `Checkpoint ${patrolProgress.currentCheckpoint} of ${patrolProgress.totalCheckpoints} cleared for ${patrolProgress.site}.`;
-        addActivity('Checkpoint scanned', `${patrolProgress.site} checkpoint ${patrolProgress.currentCheckpoint} completed.`);
+        patrolProgress = {
+          ...defaultPatrolProgress,
+          active: true,
+          routeId: route.id,
+          site: route.site,
+          totalCheckpoints: route.checkpoints.length,
+          readyCheckpointId: nextCheckpoint?.id || '',
+          completedCheckpointIds: [],
+          algorithmMode: route.mode
+        };
+        document.getElementById('patrolStatus').textContent = nextCheckpoint
+          ? `Patrol started for ${route.site}. SpectraRoute selected ${nextCheckpoint.name} as the first checkpoint.`
+          : `Patrol started for ${route.site}. Add checkpoints to continue.`;
+        addActivity('Patrol started', `${route.site} route is now active with ${route.mode} sequencing.`);
+      } else if (nextCheckpoint) {
+        patrolProgress.completedCheckpointIds = [...new Set([...patrolProgress.completedCheckpointIds, nextCheckpoint.id])];
+        patrolProgress.currentCheckpoint = patrolProgress.completedCheckpointIds.length;
+        const upcomingCheckpoint = route.checkpoints.find(checkpoint => !patrolProgress.completedCheckpointIds.includes(checkpoint.id))
+          || getPatrolPlan(route).orderedCheckpoints.find(checkpoint => !patrolProgress.completedCheckpointIds.includes(checkpoint.id))
+          || null;
+        patrolProgress.readyCheckpointId = upcomingCheckpoint?.id || '';
+        patrolProgress.lastCheckpointName = nextCheckpoint.name;
+        patrolProgress.lastScanTime = formatCurrentTime();
+        addActivity('Checkpoint scanned', `${route.site} • ${nextCheckpoint.name} completed using ${nextCheckpoint.scanType}.`);
+        if (patrolProgress.currentCheckpoint >= route.checkpoints.length) {
+          patrolProgress.active = false;
+          patrolProgress.readyCheckpointId = '';
+          document.getElementById('patrolStatus').textContent = `Patrol route completed for ${route.site}. All ${route.checkpoints.length} checkpoints were covered.`;
+          addActivity('Patrol completed', `${route.site} route closed successfully.`);
+        } else {
+          document.getElementById('patrolStatus').textContent = `${nextCheckpoint.name} scanned. Next smart checkpoint: ${upcomingCheckpoint?.name || 'none'}.`;
+        }
       } else {
         patrolProgress.active = false;
         patrolProgress.currentCheckpoint = 0;
-        document.getElementById('startPatrolBtn').textContent = 'Start New Patrol Route';
-        document.getElementById('patrolStatus').textContent = `Patrol route completed for ${patrolProgress.site}. All ${patrolProgress.totalCheckpoints} checkpoints were covered.`;
-        addActivity('Patrol completed', `${patrolProgress.site} route closed successfully.`);
+        patrolProgress.readyCheckpointId = '';
+        document.getElementById('patrolStatus').textContent = `Patrol route completed for ${route.site}. All ${route.checkpoints.length} checkpoints were covered.`;
+        addActivity('Patrol completed', `${route.site} route closed successfully.`);
       }
 
+      renderPatrolState();
+      renderReportPreview();
       saveDashboardState();
     });
 
     document.getElementById('generateReportBtn').addEventListener('click', () => {
       reportGenerated = !reportGenerated;
       document.getElementById('reportStatus').textContent = reportGenerated
-        ? 'March compliance report generated successfully with the latest roster, incident, and compliance metrics.'
-        : 'March compliance report switched back to live preview mode.';
+        ? `Smart ${document.getElementById('reportFocusSelect').value} report generated successfully for ${document.getElementById('reportAudienceSelect').value}.`
+        : 'Smart report switched back to live preview mode.';
       addActivity('Compliance report updated', reportGenerated
-        ? 'March compliance report generated from current dashboard metrics.'
+        ? `Smart report generated for ${document.getElementById('reportAudienceSelect').value}.`
         : 'Compliance report returned to live preview mode.');
       renderReportPreview();
       saveDashboardState();
@@ -2835,18 +3784,23 @@
     document.getElementById('cancelEntityModalBtn').addEventListener('click', closeEntityModal);
     document.getElementById('closeClockInModalBtn').addEventListener('click', closeClockInModal);
     document.getElementById('refreshGpsBtn').addEventListener('click', requestClockInGps);
+    document.getElementById('startCameraBtn').addEventListener('click', startClockInCamera);
+    document.getElementById('capturePhotoBtn').addEventListener('click', captureClockInPhoto);
 
     document.getElementById('clockInPhotoInput').addEventListener('change', event => {
       const file = event.target.files[0];
-      document.getElementById('clockInPhotoStatus').textContent = file ? sanitizeFileName(file.name, 'clock-in-photo.jpg') : 'No photo captured yet.';
       if (!file) {
-        pendingClockInPhotoPreview = '';
+        setClockInPhotoPreview('', '', '');
         return;
       }
 
       const reader = new FileReader();
       reader.onload = loadEvent => {
-        pendingClockInPhotoPreview = typeof loadEvent.target?.result === 'string' ? loadEvent.target.result : '';
+        setClockInPhotoPreview(
+          typeof loadEvent.target?.result === 'string' ? loadEvent.target.result : '',
+          sanitizeFileName(file.name, 'clock-in-photo.jpg'),
+          'Uploaded photo'
+        );
       };
       reader.readAsDataURL(file);
     });
@@ -2862,7 +3816,7 @@
         return;
       }
 
-      if (!photoFile) {
+      if (!photoFile && !pendingClockInPhotoPreview) {
         document.getElementById('clockInModalStatus').textContent = 'Capture or attach a photo before confirming clock-in.';
         return;
       }
@@ -2873,8 +3827,9 @@
         clockOutTime: '',
         lastActionTime: nowLabel,
         gps: pendingClockInGps || { label: 'GPS unavailable during clock-in.' },
-        photoName: sanitizeFileName(photoFile.name, 'clock-in-photo.jpg'),
-        photoPreview: pendingClockInPhotoPreview
+        photoName: photoFile ? sanitizeFileName(photoFile.name, 'clock-in-photo.jpg') : pendingClockInPhotoName || `${LIVE_CAMERA_FILE_PREFIX}-${Date.now()}.jpg`,
+        photoPreview: pendingClockInPhotoPreview,
+        photoSource: photoFile ? 'Uploaded photo' : (pendingClockInPhotoSource || 'Live camera capture')
       };
       selectedGuard.status = 'On Duty';
       document.getElementById('attendanceStatus').textContent = `${buildAttendanceLabel(selectedGuard)} clocked in successfully with ${attendanceSessions[selectedGuard.id].gps.label}.`;
@@ -2886,6 +3841,8 @@
 
     document.getElementById('disconnectFirebaseBtn').addEventListener('click', disconnectFirebase);
     document.getElementById('attendanceGuardSelect').addEventListener('change', renderAttendancePanel);
+    document.getElementById('reportAudienceSelect').addEventListener('change', renderReportPreview);
+    document.getElementById('reportFocusSelect').addEventListener('change', renderReportPreview);
     document.getElementById('guardSearchInput').addEventListener('input', renderGuardDirectory);
     document.getElementById('guardStatusFilter').addEventListener('change', renderGuardDirectory);
     document.getElementById('siteSearchInput').addEventListener('input', renderSitesList);
