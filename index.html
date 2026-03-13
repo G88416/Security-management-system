@@ -1275,8 +1275,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script>
     const requiredDocumentTypes = ['PSIRA Certificate', 'ID Copy', 'Training Record'];
     const SLA_PERCENTAGE_PATTERN = /(\d+%)/;
@@ -1297,6 +1295,16 @@
       leaveRequest: 6,
       checkpointRisk: 4
     };
+    const defaultFirebaseConfig = Object.freeze({
+      apiKey: 'AIzaSyAx3bTTXbDakLkR16FM_knmdwBnj4TAx8A',
+      authDomain: 'security-dashboard-system.firebaseapp.com',
+      projectId: 'security-dashboard-system',
+      storageBucket: 'security-dashboard-system.firebasestorage.app',
+      messagingSenderId: '883331396308',
+      appId: '1:883331396308:web:56704b884cff0c19e4c141',
+      measurementId: 'G-1HZ6FTRRSX'
+    });
+    const defaultFirebaseConfigJson = JSON.stringify(defaultFirebaseConfig, null, 2);
     const guardPipeline = [
       {
         id: 'SG-155',
@@ -1508,7 +1516,10 @@
     let selectedPatrolRouteId = defaultPatrolRoutes[0].id;
     let leaveRequests = defaultLeaveRequests.map(request => ({ ...request }));
     let activityFeed = [];
+    let firebaseApp = null;
+    let firebaseAnalytics = null;
     let firebaseDb = null;
+    let firebaseSdkPromise = null;
     let firebaseSyncEnabled = false;
     let entityModalState = { type: '', mode: 'create', id: '' };
     let pendingClockInGuardId = '';
@@ -1526,6 +1537,48 @@
     const firebaseAppName = 'secureguard-dashboard';
     const firebaseCollectionName = 'secureguard';
     const firebaseDocumentName = 'dashboard-state';
+
+    function buildFirebaseDocumentRef(firebaseSdk) {
+      return firebaseSdk.doc(firebaseDb, firebaseCollectionName, firebaseDocumentName);
+    }
+
+    function hasDifferentFirebaseConfig(existingOptions, nextConfig) {
+      return ['apiKey', 'appId', 'authDomain', 'measurementId', 'messagingSenderId', 'projectId', 'storageBucket']
+        .some(key => (existingOptions?.[key] || '') !== (nextConfig?.[key] || ''));
+    }
+
+    async function loadFirebaseSdk() {
+      if (window.secureGuardFirebaseSdk) {
+        return window.secureGuardFirebaseSdk;
+      }
+
+      if (!firebaseSdkPromise) {
+        firebaseSdkPromise = Promise.all([
+          import('https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js'),
+          import('https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics.js'),
+          import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js')
+        ]).then(([appModule, analyticsModule, firestoreModule]) => {
+          window.secureGuardFirebaseSdk = {
+            deleteApp: appModule.deleteApp,
+            getAnalytics: analyticsModule.getAnalytics,
+            getApps: appModule.getApps,
+            getDoc: firestoreModule.getDoc,
+            getFirestore: firestoreModule.getFirestore,
+            initializeApp: appModule.initializeApp,
+            isAnalyticsSupported: analyticsModule.isSupported,
+            setDoc: firestoreModule.setDoc,
+            doc: firestoreModule.doc
+          };
+
+          return window.secureGuardFirebaseSdk;
+        }).catch(error => {
+          firebaseSdkPromise = null;
+          throw error;
+        });
+      }
+
+      return firebaseSdkPromise;
+    }
 
     function escapeHtml(value) {
       return String(value).replace(/[&<>"']/g, character => ({
@@ -2550,8 +2603,9 @@
         console.warn('Unable to save local dashboard state:', error);
       }
 
-      if (firebaseSyncEnabled && firebaseDb) {
-        firebaseDb.collection(firebaseCollectionName).doc(firebaseDocumentName).set(state).then(() => {
+      const firebaseSdk = window.secureGuardFirebaseSdk;
+      if (firebaseSyncEnabled && firebaseDb && firebaseSdk) {
+        firebaseSdk.setDoc(buildFirebaseDocumentRef(firebaseSdk), state).then(() => {
           setFirebaseStatus(`Firebase sync active. Latest dashboard changes saved to Firestore at ${formatCurrentTime()}.`);
         }).catch(error => {
           setFirebaseStatus(`Firebase sync warning: ${error.message}`);
@@ -2752,15 +2806,10 @@
 
     async function connectFirebase(autoConnect = false) {
       const input = document.getElementById('firebaseConfigInput');
-      const rawConfig = input.value.trim();
+      const rawConfig = input.value.trim() || defaultFirebaseConfigJson;
 
       if (!rawConfig) {
         setFirebaseStatus('Paste your Firebase web config JSON to connect Firestore sync.');
-        return;
-      }
-
-      if (!window.firebase?.firestore) {
-        setFirebaseStatus('Firebase scripts are unavailable in this browser session.');
         return;
       }
 
@@ -2779,30 +2828,39 @@
       }
 
       try {
-        let app = firebase.apps.find(existingApp => existingApp.name === firebaseAppName);
-        if (!app) {
-          app = firebase.initializeApp(config, firebaseAppName);
+        const firebaseSdk = await loadFirebaseSdk();
+        input.value = JSON.stringify(config, null, 2);
+
+        const existingApp = firebaseSdk.getApps().find(app => app.name === firebaseAppName);
+        if (existingApp && hasDifferentFirebaseConfig(existingApp.options, config)) {
+          await firebaseSdk.deleteApp(existingApp);
         }
 
-        firebaseDb = app.firestore();
+        firebaseApp = firebaseSdk.getApps().find(app => app.name === firebaseAppName) || firebaseSdk.initializeApp(config, firebaseAppName);
+        firebaseDb = firebaseSdk.getFirestore(firebaseApp);
         firebaseSyncEnabled = true;
-        localStorage.setItem(firebaseConfigStorageKey, rawConfig);
+        localStorage.setItem(firebaseConfigStorageKey, JSON.stringify(config));
         setFirebaseStatus(`Connected to Firebase project ${config.projectId}. Syncing dashboard state...`);
 
-        const snapshot = await firebaseDb.collection(firebaseCollectionName).doc(firebaseDocumentName).get();
+        if (!firebaseAnalytics && await firebaseSdk.isAnalyticsSupported().catch(() => false)) {
+          firebaseAnalytics = firebaseSdk.getAnalytics(firebaseApp);
+        }
 
-        if (snapshot.exists && applyLoadedState(snapshot.data())) {
+        const snapshot = await firebaseSdk.getDoc(buildFirebaseDocumentRef(firebaseSdk));
+
+        if (snapshot.exists() && applyLoadedState(snapshot.data())) {
           renderAll();
           syncCalendarFromState();
           addActivity('Firebase connected', `Loaded synced dashboard data from ${config.projectId}.`);
         } else {
-          await firebaseDb.collection(firebaseCollectionName).doc(firebaseDocumentName).set(serializeState());
+          await firebaseSdk.setDoc(buildFirebaseDocumentRef(firebaseSdk), serializeState());
           addActivity('Firebase connected', `Created a new dashboard document in ${config.projectId}.`);
         }
 
         setFirebaseStatus(`Firebase sync active for ${config.projectId}. Button actions now persist to Firestore.`);
         saveDashboardState();
       } catch (error) {
+        firebaseApp = null;
         firebaseDb = null;
         firebaseSyncEnabled = false;
         setFirebaseStatus(`Firebase connection failed: ${error.message}`);
@@ -2814,6 +2872,8 @@
     }
 
     function disconnectFirebase() {
+      firebaseApp = null;
+      firebaseAnalytics = null;
       firebaseSyncEnabled = false;
       firebaseDb = null;
       localStorage.removeItem(firebaseConfigStorageKey);
@@ -2826,6 +2886,8 @@
       const savedConfig = localStorage.getItem(firebaseConfigStorageKey);
 
       if (!savedConfig) {
+        document.getElementById('firebaseConfigInput').value = defaultFirebaseConfigJson;
+        setFirebaseStatus(`Built-in Firebase config ready for ${defaultFirebaseConfig.projectId}. Connect Firebase to enable Firestore sync.`);
         return;
       }
 
