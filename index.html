@@ -95,6 +95,7 @@
     }
 
     .grid-2 { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .grid-3 { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
     .action-row {
       display: flex;
       flex-wrap: wrap;
@@ -217,6 +218,38 @@
       background: var(--bg);
     }
 
+    .role-card, .stack-item, .feature-item {
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      background: var(--bg);
+    }
+
+    .role-card h3, .stack-item h3, .feature-item h3 {
+      margin-bottom: 0.55rem;
+    }
+
+    .role-card ul, .stack-item ul, .feature-item ul {
+      padding-left: 1.15rem;
+      color: var(--text-light);
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    .role-card li strong, .stack-item li strong, .feature-item li strong {
+      color: var(--text);
+    }
+
+    .eyebrow {
+      display: inline-block;
+      margin-bottom: 0.55rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--primary-dark);
+    }
+
     .document-item small,
     .incident-item small {
       display: block;
@@ -333,6 +366,7 @@
     <button data-tab="incidents">Incidents</button>
     <button data-tab="sites">Sites / Clients</button>
     <button data-tab="reports">Reports</button>
+    <button data-tab="platform">Roles / Stack</button>
   </nav>
 
   <!-- Guards / Employee Management -->
@@ -399,7 +433,7 @@
   <div id="attendance" class="section">
     <div class="card">
       <h2>Time & Attendance</h2>
-      <p>Must-have: GPS geofence, QR scan, photo verification, panic button</p>
+      <p>Mobile-first attendance workflow with GPS geofence, biometric-ready clock-in, offline sync, and panic escalation.</p>
       <div class="form-group">
         <label>Quick Clock-in Simulation</label>
         <select>
@@ -416,7 +450,7 @@
   <div id="patrol" class="section">
     <div class="card">
       <h2>Guard Tour / Patrol</h2>
-      <p>Must-have: Checkpoints (QR/GPS), missed alerts, real-time progress</p>
+      <p>Checkpoint coverage with QR/NFC-ready scans, missed-alert escalation, real-time progress, and background location support.</p>
       <ul style="margin:1rem 0; padding-left:1.2rem;">
         <li>Site: Sandton Mall – 92% complete</li>
         <li>Site: Menlyn Park – Missed checkpoint #7 (Rear gate)</li>
@@ -483,7 +517,7 @@
   <div id="sites" class="section">
     <div class="card">
       <h2>Client / Site Management</h2>
-      <p>Must-have: Site profiles, post orders, client reports</p>
+      <p>Site profiles, post orders, and client/site manager reporting with view-only access for assigned locations.</p>
       <ul style="margin:1rem 0; padding-left:1.2rem;">
         <li>Sandton Mall – 8 guards • Post orders v3.1</li>
         <li>Menlyn Corporate Park – 5 guards • SLA compliance 98%</li>
@@ -496,9 +530,119 @@
   <div id="reports" class="section">
     <div class="card">
       <h2>Reporting & Analytics</h2>
-      <p>Must-have: Dashboards, compliance reports, PDF/Excel export</p>
+      <p>Dashboards, compliance reports, PDF/Excel export, and read-only reporting views for client stakeholders.</p>
       <p style="margin:1.5rem 0;">[Placeholder – Real-time KPIs, no-show trends, billing export would go here]</p>
       <button class="btn">Generate March Compliance Report</button>
+    </div>
+  </div>
+
+  <div id="platform" class="section">
+    <div class="card">
+      <span class="eyebrow">Access model</span>
+      <h2>Typical User Roles & Permissions</h2>
+      <p style="margin:0.75rem 0 1.2rem;">A modern security operations platform needs clear role boundaries so each user sees the right tools on web or mobile.</p>
+      <div class="grid-3">
+        <div class="role-card">
+          <h3>Admin / Owner</h3>
+          <ul>
+            <li><strong>Access:</strong> Full platform administration across all sites, teams, and settings.</li>
+            <li><strong>Controls:</strong> User provisioning, billing, site setup, audit logs, and compliance oversight.</li>
+          </ul>
+        </div>
+        <div class="role-card">
+          <h3>Operations Manager / Supervisor</h3>
+          <ul>
+            <li><strong>Access:</strong> Scheduling, live monitoring, incident approval, and roster publishing.</li>
+            <li><strong>Controls:</strong> Shift edits, guard coordination, escalations, and response follow-up.</li>
+          </ul>
+        </div>
+        <div class="role-card">
+          <h3>Client / Site Manager</h3>
+          <ul>
+            <li><strong>Access:</strong> View-only reports and site summaries for their assigned locations.</li>
+            <li><strong>Controls:</strong> SLA visibility, incident outcomes, and post-order review without operational edits.</li>
+          </ul>
+        </div>
+        <div class="role-card">
+          <h3>Security Guard / Officer</h3>
+          <ul>
+            <li><strong>Access:</strong> Mobile app only for clock in/out, patrol scanning, incident reporting, and roster lookup.</li>
+            <li><strong>Controls:</strong> Tour completion, panic alerts, evidence capture, and personal shift visibility.</li>
+          </ul>
+        </div>
+        <div class="role-card">
+          <h3>Dispatcher</h3>
+          <ul>
+            <li><strong>Access:</strong> Real-time monitoring, live map awareness, and emergency response coordination.</li>
+            <li><strong>Controls:</strong> Active incident routing, radio/chat escalation, and dispatch history tracking.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="eyebrow">2025–2026 direction</span>
+      <h2>Modern Technology Stack Suggestion</h2>
+      <p style="margin:0.75rem 0 1.2rem;">The recommended direction stays mobile-first and cloud-based, with real-time communication and secure access for field teams.</p>
+      <div class="grid-2">
+        <div class="stack-item">
+          <h3>Architecture & Frontend</h3>
+          <ul>
+            <li><strong>Architecture:</strong> Mobile-first, cloud-based deployment instead of on-premise infrastructure.</li>
+            <li><strong>Mobile app:</strong> Flutter or React Native for one shared iOS and Android codebase.</li>
+            <li><strong>Web dashboard:</strong> React / Next.js or Vue.js for operations, reporting, and client portals.</li>
+          </ul>
+        </div>
+        <div class="stack-item">
+          <h3>Backend & Data</h3>
+          <ul>
+            <li><strong>Backend:</strong> Node.js + TypeScript, Python with FastAPI, or C# /.NET.</li>
+            <li><strong>API:</strong> REST endpoints with WebSockets for live tracking, messaging, and status changes.</li>
+            <li><strong>Database:</strong> PostgreSQL as the core relational store with Redis for caching.</li>
+            <li><strong>Time-series:</strong> TimescaleDB extension or InfluxDB for guard location history.</li>
+          </ul>
+        </div>
+        <div class="stack-item">
+          <h3>Realtime, Maps & Security</h3>
+          <ul>
+            <li><strong>Realtime:</strong> Firebase, Supabase Realtime, or Pusher for live movement and response updates.</li>
+            <li><strong>Maps:</strong> Mapbox GL JS or Google Maps Platform with places support.</li>
+            <li><strong>Authentication:</strong> JWT with refresh tokens and multi-factor authentication using TOTP.</li>
+            <li><strong>Security:</strong> Biometric mobile login, row-level security, and encryption at rest.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="eyebrow">Officer experience</span>
+      <h2>Mobile App Features Checklist</h2>
+      <div class="grid-3" style="margin-top:1rem;">
+        <div class="feature-item">
+          <h3>Core field operations</h3>
+          <ul>
+            <li>Offline support with sync when connectivity returns.</li>
+            <li>Background location optimized for battery efficiency.</li>
+            <li>Push notifications through FCM / APNs.</li>
+          </ul>
+        </div>
+        <div class="feature-item">
+          <h3>Checkpoint & evidence tools</h3>
+          <ul>
+            <li>QR and NFC reader support for patrol checkpoints.</li>
+            <li>Camera capture and file upload for incident evidence.</li>
+            <li>Clock in / out workflow with site-aware validation.</li>
+          </ul>
+        </div>
+        <div class="feature-item">
+          <h3>Safety & authentication</h3>
+          <ul>
+            <li>Panic button with silent alert and live location sharing.</li>
+            <li>Biometric login using Face ID or fingerprint on supported devices.</li>
+            <li>Secure role-based access aligned to officer, dispatcher, and supervisor workflows.</li>
+          </ul>
+        </div>
+      </div>
     </div>
   </div>
 
