@@ -776,8 +776,9 @@
     }
 
     function sanitizeFileName(fileName, fallbackName) {
-      const trimmedName = String(fileName || fallbackName || '').trim();
-      return trimmedName.replace(/[^\w.\-() ]+/g, '_').slice(0, 120) || fallbackName;
+      const safeFallback = String(fallbackName || 'attachment').trim().replace(/[^\w.\-()\s]+/g, '_').slice(0, 120) || 'attachment';
+      const trimmedName = String(fileName || '').trim();
+      return trimmedName.replace(/[^\w.\-()\s]+/g, '_').slice(0, 120) || safeFallback;
     }
 
     function getIncidentStatusClass(status) {
@@ -855,7 +856,11 @@
     function renderIncidentSummary() {
       const openCount = incidentData.filter(incident => incident.status !== 'Resolved').length;
       const escalatedCount = incidentData.filter(incident => incident.status === 'Escalated').length;
-      document.getElementById('incidentSummary').textContent = `${openCount} active incident(s) • ${escalatedCount} escalated for follow-up`;
+      setIncidentSummary(`${openCount} active incident(s) • ${escalatedCount} escalated for follow-up`);
+    }
+
+    function setIncidentSummary(message) {
+      document.getElementById('incidentSummary').textContent = message;
     }
 
     function updateIncidentStatus(incidentId, direction) {
@@ -1103,7 +1108,7 @@
       const description = document.getElementById('incidentDescription').value.trim();
 
       if (!location || !reporter || !description) {
-        document.getElementById('incidentSummary').textContent = 'Location, reporter, and description are required to submit an incident.';
+        setIncidentSummary('Location, reporter, and description are required to submit an incident.');
         return;
       }
 
