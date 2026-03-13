@@ -1,0 +1,55 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isDashboardStatePayload(data) {
+      return data is map
+        && data.keys().hasOnly([
+          'activityFeed',
+          'attendanceSessions',
+          'currentPortalGuardId',
+          'currentPortalRole',
+          'guardData',
+          'incidentData',
+          'leaveRequests',
+          'panicAlertActive',
+          'patrolProgress',
+          'patrolRoutes',
+          'reportGenerated',
+          'scheduleEvents',
+          'selectedGuardId',
+          'selectedPatrolRouteId',
+          'siteData'
+        ])
+        && data.guardData is list
+        && data.incidentData is list
+        && data.siteData is list
+        && data.patrolRoutes is list
+        && data.leaveRequests is list
+        && data.scheduleEvents is list
+        && data.activityFeed is list
+        && data.attendanceSessions is map
+        && data.patrolProgress is map
+        && data.panicAlertActive is bool
+        && data.reportGenerated is bool
+        && data.currentPortalRole is string
+        && data.currentPortalGuardId is string
+        && data.selectedGuardId is string
+        && data.selectedPatrolRouteId is string;
+    }
+
+    match /secureguard/dashboard-state {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isDashboardStatePayload(request.resource.data);
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

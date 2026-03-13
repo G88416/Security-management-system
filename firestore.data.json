@@ -1,0 +1,27 @@
+{
+  "collection": "secureguard",
+  "document": "dashboard-state",
+  "data": {
+    "activityFeed": [
+      {
+        "detail": "The SecureGuard prototype is loaded and ready for Firebase sync.",
+        "timestamp": "2026-01-01T08:00:00.000Z",
+        "title": "Dashboard ready"
+      }
+    ],
+    "attendanceSessions": {},
+    "currentPortalGuardId": "SG-042",
+    "currentPortalRole": "Admin / Owner",
+    "guardData": [],
+    "incidentData": [],
+    "leaveRequests": [],
+    "panicAlertActive": false,
+    "patrolProgress": {},
+    "patrolRoutes": [],
+    "reportGenerated": false,
+    "scheduleEvents": [],
+    "selectedGuardId": "SG-042",
+    "selectedPatrolRouteId": "",
+    "siteData": []
+  }
+}
