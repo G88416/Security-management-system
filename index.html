@@ -336,6 +336,26 @@
       margin-bottom: 0.35rem;
     }
 
+    .metric-grid {
+      display: grid;
+      gap: 0.85rem;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      margin-top: 1rem;
+    }
+
+    .metric-item {
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 0.9rem;
+      background: var(--bg);
+    }
+
+    .metric-item strong {
+      display: block;
+      font-size: 1.35rem;
+      margin-bottom: 0.25rem;
+    }
+
     footer {
       text-align: center;
       margin-top: 3rem;
@@ -542,10 +562,38 @@
     <div class="card">
       <h2>Reporting & Analytics</h2>
       <p>Dashboards, compliance reports, PDF/Excel export, and read-only reporting views for client stakeholders.</p>
-      <p style="margin:1.5rem 0;">[Placeholder – Real-time KPIs, no-show trends, billing export would go here]</p>
       <div class="action-row">
         <button id="generateReportBtn" type="button" class="btn">Generate March Compliance Report</button>
         <span id="reportStatus" class="inline-feedback">Generate a compliance snapshot for client reporting.</span>
+      </div>
+
+      <div class="grid-2" style="margin-top:1.25rem; align-items:start;">
+        <div class="role-card">
+          <h3>Live compliance snapshot</h3>
+          <p class="inline-feedback" style="margin-top:0.45rem;">The dashboard now builds a quick operational summary from guards, sites, incidents, and roster data.</p>
+          <div id="reportPreview" class="metric-grid"></div>
+        </div>
+        <div class="role-card">
+          <h3>Firebase sync</h3>
+          <p class="inline-feedback" style="margin:0.45rem 0 1rem;">Paste your Firebase web config JSON to enable Firestore-backed persistence. Without it, the app stays in local demo mode.</p>
+          <div class="form-group">
+            <label for="firebaseConfigInput">Firebase web config JSON</label>
+            <textarea id="firebaseConfigInput" rows="6" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","appId":"..."}'></textarea>
+          </div>
+          <div class="action-row">
+            <div>
+              <button id="connectFirebaseBtn" type="button" class="btn">Connect Firebase</button>
+              <button id="disconnectFirebaseBtn" type="button" class="btn" style="margin-left:0.6rem; background:var(--muted); color:var(--text); border:1px solid var(--border);">Use Local Mode</button>
+            </div>
+            <span id="firebaseStatus" class="inline-feedback">Local demo mode active. Add Firebase config to sync data.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="role-card" style="margin-top:1.25rem;">
+        <h3>Recent activity</h3>
+        <p class="inline-feedback" style="margin-top:0.45rem;">Every major button action now leaves an audit-style activity trace for supervisors.</p>
+        <div id="activityFeed" class="document-list"></div>
       </div>
     </div>
   </div>
@@ -665,8 +713,58 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script>
-    const guardData = [
+    const requiredDocumentTypes = ['PSIRA Certificate', 'ID Copy', 'Training Record'];
+    const guardPipeline = [
+      {
+        id: 'SG-155',
+        name: 'Ayanda Nkosi',
+        pay: 'R29/hr',
+        certifications: 'PSIRA Gr C',
+        certificationExpiry: '2026-11',
+        status: 'Available',
+        site: 'Rosebank Relief Pool',
+        shift: 'Standby for weekend deployment',
+        contact: 'ayanda.n@secureguard.co.za • 084 610 1108',
+        skills: ['Reception cover', 'Patrol support'],
+        documents: [
+          { type: 'PSIRA Certificate', fileName: 'ayanda-psira.pdf', state: 'Verified', uploadedAt: '10 Mar 2026' }
+        ]
+      },
+      {
+        id: 'SG-166',
+        name: 'Lerato Dlamini',
+        pay: 'R30/hr',
+        certifications: 'PSIRA Gr B, CCTV',
+        certificationExpiry: '2027-02',
+        status: 'Available',
+        site: 'Fourways Retail Precinct',
+        shift: 'Ready for day relief deployment',
+        contact: 'lerato.d@secureguard.co.za • 071 502 8814',
+        skills: ['Control room support', 'Incident triage'],
+        documents: [
+          { type: 'PSIRA Certificate', fileName: 'lerato-psira.pdf', state: 'Verified', uploadedAt: '06 Mar 2026' },
+          { type: 'Training Record', fileName: 'lerato-cctv.pdf', state: 'Verified', uploadedAt: '08 Mar 2026' }
+        ]
+      }
+    ];
+
+    const sitePipeline = [
+      'Rosebank Banking Plaza – 4 guards • Post orders draft in review',
+      'Waterfall Distribution Hub – 6 guards • Access plan awaiting approval',
+      'Pretoria Civic Centre – 3 guards • Client onboarding in progress'
+    ];
+
+    const reliefShiftTemplates = [
+      { title: 'Relief Patrol • Menlyn', dayOffset: 2, startHour: 10, endHour: 18, color: '#f59e0b' },
+      { title: 'Retail Support • Rosebank', dayOffset: 4, startHour: 12, endHour: 20, color: '#8b5cf6' },
+      { title: 'Night Relief • Midrand', dayOffset: 5, startHour: 18, endHour: 23, color: '#10b981' }
+    ];
+    const defaultPatrolProgress = { active: false, currentCheckpoint: 0, totalCheckpoints: 8, site: 'Sandton Mall' };
+
+    let guardData = [
       {
         id: 'SG-042',
         name: 'Thabo Mokoena',
@@ -674,7 +772,6 @@
         certifications: 'PSIRA Gr A',
         certificationExpiry: '2027-06',
         status: 'On Duty',
-        statusClass: 'status-on',
         site: 'Sandton Command Centre',
         shift: '18:00–06:00 Night Shift',
         contact: 'thabo.m@secureguard.co.za • 082 441 8821',
@@ -691,7 +788,6 @@
         certifications: 'First Aid, CCTV',
         certificationExpiry: '2026-12',
         status: 'Patrolling',
-        statusClass: 'status-patrol',
         site: 'Midrand Logistics Park',
         shift: '14:00–22:00 Swing Shift',
         contact: 'nokuthula.z@secureguard.co.za • 083 120 5530',
@@ -708,7 +804,6 @@
         certifications: 'Armed response',
         certificationExpiry: '2026-09',
         status: 'Off Duty',
-        statusClass: 'status-off',
         site: 'Relief Pool',
         shift: 'Next shift: Fri 06:00–18:00',
         contact: 'john.l@secureguard.co.za • 081 614 2204',
@@ -720,7 +815,7 @@
     ];
 
     const incidentWorkflow = ['Open', 'Investigating', 'Escalated', 'Resolved'];
-    const incidentData = [
+    let incidentData = [
       {
         id: 'INC-2401',
         type: 'Unauthorized Access',
@@ -756,14 +851,29 @@
       }
     ];
 
+    let siteData = [
+      'Sandton Mall – 8 guards • Post orders v3.1',
+      'Menlyn Corporate Park – 5 guards • SLA compliance 98%'
+    ];
+
     let selectedGuardId = guardData[0].id;
     let calendar;
     let calendarInitialized = false;
     let usingCalendarFallback = false;
     let scheduleEvents = buildCalendarEvents();
     let panicAlertActive = false;
-    let patrolRouteActive = false;
     let reportGenerated = false;
+    let attendanceSessions = {};
+    let patrolProgress = { ...defaultPatrolProgress };
+    let activityFeed = [];
+    let firebaseDb = null;
+    let firebaseSyncEnabled = false;
+
+    const localStateStorageKey = 'secureguard-dashboard-state-v2';
+    const firebaseConfigStorageKey = 'secureguard-firebase-config-v1';
+    const firebaseAppName = 'secureguard-dashboard';
+    const firebaseCollectionName = 'secureguard';
+    const firebaseDocumentName = 'dashboard-state';
 
     function escapeHtml(value) {
       return String(value).replace(/[&<>"']/g, character => ({
@@ -773,6 +883,16 @@
         '"': '&quot;',
         "'": '&#39;'
       })[character]);
+    }
+
+    function getGuardStatusClass(status) {
+      return {
+        'On Duty': 'status-on',
+        Patrolling: 'status-patrol',
+        Available: 'status-resolved',
+        'Off Duty': 'status-off',
+        Break: 'status-open'
+      }[status] || 'status-patrol';
     }
 
     function sanitizeFileName(fileName, fallbackName) {
@@ -799,6 +919,114 @@
       }[severity];
     }
 
+    function formatCurrentTime() {
+      return new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function generateIncidentId() {
+      const maxIncidentNumber = incidentData.reduce((highestNumber, incident) => {
+        const incidentNumber = Number(String(incident.id || '').replace(/[^\d]/g, ''));
+        return Number.isFinite(incidentNumber) ? Math.max(highestNumber, incidentNumber) : highestNumber;
+      }, 2400);
+
+      return `INC-${String(maxIncidentNumber + 1).padStart(4, '0')}`;
+    }
+
+    function formatActivityTime(timestamp) {
+      return new Date(timestamp).toLocaleString('en-ZA', {
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function buildAttendanceLabel(guard) {
+      return `${guard.name} – ${guard.site}`;
+    }
+
+    function cloneGuard(guard) {
+      return {
+        ...guard,
+        skills: [...guard.skills],
+        documents: guard.documents.map(document => ({ ...document }))
+      };
+    }
+
+    function getSelectedGuard() {
+      return guardData.find(entry => entry.id === selectedGuardId) || guardData[0];
+    }
+
+    function renderAttendanceOptions() {
+      const select = document.getElementById('attendanceGuardSelect');
+      const previousValue = select.value;
+      select.innerHTML = guardData.map(guard => `<option>${escapeHtml(buildAttendanceLabel(guard))}</option>`).join('');
+
+      if (guardData.some(guard => buildAttendanceLabel(guard) === previousValue)) {
+        select.value = previousValue;
+      }
+    }
+
+    function renderSitesList() {
+      document.querySelector('#sites ul').innerHTML = siteData.map(site => `<li>${escapeHtml(site)}</li>`).join('');
+    }
+
+    function renderActivityFeed() {
+      const activityContainer = document.getElementById('activityFeed');
+      activityContainer.innerHTML = activityFeed.length
+        ? activityFeed.slice(0, 8).map(item => `
+            <div class="document-item">
+              <strong>${escapeHtml(item.title)}</strong>
+              <small>${escapeHtml(formatActivityTime(item.timestamp))} • ${escapeHtml(item.detail)}</small>
+            </div>
+          `).join('')
+        : '<div class="document-item"><strong>No activity yet</strong><small>Use the dashboard actions to build an operational history.</small></div>';
+    }
+
+    function addActivity(title, detail) {
+      activityFeed.unshift({
+        title,
+        detail,
+        timestamp: new Date().toISOString()
+      });
+      activityFeed = activityFeed.slice(0, 20);
+      renderActivityFeed();
+    }
+
+    function renderReportPreview() {
+      const onDutyCount = guardData.filter(guard => ['On Duty', 'Patrolling'].includes(guard.status)).length;
+      const activeIncidentCount = incidentData.filter(incident => incident.status !== 'Resolved').length;
+      const escalatedIncidentCount = incidentData.filter(incident => incident.status === 'Escalated').length;
+      const pendingDocumentCount = guardData.reduce((total, guard) => total + guard.documents.reduce((count, document) => count + (document.state !== 'Verified' ? 1 : 0), 0), 0);
+      const scheduledShiftCount = calendar ? calendar.getEvents().length : scheduleEvents.length;
+
+      document.getElementById('reportPreview').innerHTML = [
+        { label: 'On duty now', value: `${onDutyCount}/${guardData.length}`, note: 'Guards currently working or patrolling' },
+        { label: 'Active incidents', value: String(activeIncidentCount), note: `${escalatedIncidentCount} escalated for follow-up` },
+        { label: 'Scheduled shifts', value: String(scheduledShiftCount), note: 'Visible in the current roster view' },
+        { label: 'Pending documents', value: String(pendingDocumentCount), note: 'Compliance uploads still awaiting review' },
+        { label: 'Client sites', value: String(siteData.length), note: 'Live locations in the operating portfolio' },
+        { label: 'Report mode', value: reportGenerated ? 'Ready' : 'Preview', note: reportGenerated ? 'Summary locked for export' : 'Generate a report to refresh the narrative' }
+      ].map(item => `
+        <div class="metric-item">
+          <strong>${escapeHtml(item.value)}</strong>
+          <div>${escapeHtml(item.label)}</div>
+          <small>${escapeHtml(item.note)}</small>
+        </div>
+      `).join('');
+    }
+
+    function renderPatrolState() {
+      const patrolButton = document.getElementById('startPatrolBtn');
+      patrolButton.textContent = patrolProgress.active ? 'Scan Next Checkpoint' : 'Start New Patrol Route';
+
+      if (patrolProgress.active && patrolProgress.currentCheckpoint > 0) {
+        document.getElementById('patrolStatus').textContent = `Checkpoint ${patrolProgress.currentCheckpoint} of ${patrolProgress.totalCheckpoints} cleared for ${patrolProgress.site}.`;
+      } else if (!patrolProgress.active && patrolProgress.currentCheckpoint === 0) {
+        document.getElementById('patrolStatus').textContent = 'Start a patrol route to simulate checkpoint coverage.';
+      }
+    }
+
     function renderGuardDirectory() {
       const directory = document.getElementById('guardDirectory');
       directory.innerHTML = guardData.map(guard => `
@@ -806,7 +1034,7 @@
           <strong>${escapeHtml(guard.name)}</strong><br>
           ${escapeHtml(guard.id)} • ${escapeHtml(guard.pay)}<br>
           Certifications: ${escapeHtml(guard.certifications)} (expires ${escapeHtml(guard.certificationExpiry)})<br>
-          <span class="status ${guard.statusClass}">${escapeHtml(guard.status)} – ${escapeHtml(guard.site)}</span>
+          <span class="status ${getGuardStatusClass(guard.status)}">${escapeHtml(guard.status)} – ${escapeHtml(guard.site)}</span>
         </button>
       `).join('');
 
@@ -820,8 +1048,15 @@
     }
 
     function renderGuardProfile() {
-      const guard = guardData.find(entry => entry.id === selectedGuardId);
+      const guard = getSelectedGuard();
       const verifiedDocuments = guard.documents.filter(document => document.state === 'Verified').length;
+      const missingDocuments = requiredDocumentTypes.filter(type => !guard.documents.some(document => document.type === type));
+      const attendanceRecord = attendanceSessions[guard.id];
+      const attendanceLabel = attendanceRecord?.clockedIn
+        ? `Clocked in at ${escapeHtml(attendanceRecord.clockInTime || attendanceRecord.lastActionTime || 'Unknown time')}`
+        : attendanceRecord?.clockOutTime
+          ? `Last clock-out at ${escapeHtml(attendanceRecord.clockOutTime)}`
+          : 'Awaiting next clock-in';
       const profile = document.getElementById('guardProfile');
 
       profile.innerHTML = `
@@ -830,13 +1065,15 @@
             <h3>${escapeHtml(guard.name)}</h3>
             <div class="inline-feedback">${escapeHtml(guard.id)} • ${escapeHtml(guard.pay)}</div>
           </div>
-          <span class="status ${guard.statusClass}">${escapeHtml(guard.status)}</span>
+          <span class="status ${getGuardStatusClass(guard.status)}">${escapeHtml(guard.status)}</span>
         </div>
         <div class="meta-list">
           <div><strong>Primary site:</strong> ${escapeHtml(guard.site)}</div>
           <div><strong>Current / next shift:</strong> ${escapeHtml(guard.shift)}</div>
           <div><strong>Contact:</strong> ${escapeHtml(guard.contact)}</div>
           <div><strong>Compliance:</strong> ${verifiedDocuments}/${guard.documents.length} documents verified</div>
+          <div><strong>Attendance:</strong> ${attendanceLabel}</div>
+          <div><strong>Missing docs:</strong> ${escapeHtml(missingDocuments.length ? missingDocuments.join(', ') : 'Core documents complete')}</div>
         </div>
         <div class="tag-row">
           ${guard.skills.map(skill => `<span class="tag">${escapeHtml(skill)}</span>`).join('')}
@@ -870,7 +1107,10 @@
 
       if (nextIndex >= 0 && nextIndex < incidentWorkflow.length) {
         incident.status = incidentWorkflow[nextIndex];
+        addActivity('Incident workflow updated', `${incident.id} moved to ${incident.status}.`);
         renderIncidentList();
+        renderReportPreview();
+        saveDashboardState();
       }
     }
 
@@ -915,6 +1155,107 @@
       });
 
       renderIncidentSummary();
+    }
+
+    function serializeState() {
+      return {
+        guardData,
+        incidentData,
+        siteData,
+        selectedGuardId,
+        scheduleEvents: scheduleEvents.map(event => ({
+          ...event,
+          start: new Date(event.start).toISOString(),
+          end: new Date(event.end).toISOString()
+        })),
+        panicAlertActive,
+        reportGenerated,
+        attendanceSessions,
+        patrolProgress,
+        activityFeed
+      };
+    }
+
+    function applyLoadedState(state) {
+      if (!state || typeof state !== 'object') {
+        return false;
+      }
+
+      if (Array.isArray(state.guardData) && state.guardData.length) {
+        guardData = state.guardData;
+      }
+
+      if (Array.isArray(state.incidentData) && state.incidentData.length) {
+        incidentData = state.incidentData;
+      }
+
+      if (Array.isArray(state.siteData) && state.siteData.length) {
+        siteData = state.siteData;
+      }
+
+      if (Array.isArray(state.scheduleEvents) && state.scheduleEvents.length) {
+        scheduleEvents = state.scheduleEvents.map(event => ({
+          ...event,
+          start: new Date(event.start),
+          end: new Date(event.end)
+        }));
+      }
+
+      if (typeof state.selectedGuardId === 'string') {
+        selectedGuardId = state.selectedGuardId;
+      }
+
+      panicAlertActive = Boolean(state.panicAlertActive);
+      reportGenerated = Boolean(state.reportGenerated);
+      attendanceSessions = state.attendanceSessions && typeof state.attendanceSessions === 'object' ? state.attendanceSessions : {};
+      patrolProgress = state.patrolProgress && typeof state.patrolProgress === 'object'
+        ? { ...defaultPatrolProgress, ...state.patrolProgress }
+        : { ...defaultPatrolProgress };
+      activityFeed = Array.isArray(state.activityFeed) ? state.activityFeed : activityFeed;
+
+      if (!guardData.some(guard => guard.id === selectedGuardId)) {
+        selectedGuardId = guardData[0]?.id || '';
+      }
+
+      return true;
+    }
+
+    function loadLocalState() {
+      try {
+        const savedState = localStorage.getItem(localStateStorageKey);
+        if (savedState) {
+          applyLoadedState(JSON.parse(savedState));
+        }
+      } catch (error) {
+        console.warn('Unable to restore local dashboard state:', error);
+      }
+    }
+
+    function syncCalendarFromState() {
+      if (calendar) {
+        calendar.removeAllEvents();
+        scheduleEvents.forEach(event => calendar.addEvent(event));
+      } else if (usingCalendarFallback) {
+        renderCalendarFallback();
+      }
+    }
+
+    function saveDashboardState() {
+      const state = serializeState();
+
+      try {
+        localStorage.setItem(localStateStorageKey, JSON.stringify(state));
+      } catch (error) {
+        console.warn('Unable to save local dashboard state:', error);
+      }
+
+      if (firebaseSyncEnabled && firebaseDb) {
+        firebaseDb.collection(firebaseCollectionName).doc(firebaseDocumentName).set(state).then(() => {
+          setFirebaseStatus(`Firebase sync active. Latest dashboard changes saved to Firestore at ${formatCurrentTime()}.`);
+        }).catch(error => {
+          setFirebaseStatus(`Firebase sync warning: ${error.message}`);
+        });
+      }
     }
 
     function getStartOfWeek(referenceDate) {
@@ -1024,7 +1365,16 @@
         },
         events: scheduleEvents,
         eventDrop(info) {
+          scheduleEvents = calendar.getEvents().map(event => ({
+            title: event.title,
+            start: event.start,
+            end: event.end,
+            color: event.backgroundColor || undefined
+          }));
           document.getElementById('scheduleFeedback').textContent = `${info.event.title} moved to ${info.event.start.toLocaleString('en-ZA')}.`;
+          addActivity('Roster updated', `${info.event.title} moved to ${info.event.start.toLocaleString('en-ZA')}.`);
+          renderReportPreview();
+          saveDashboardState();
         },
         select(info) {
           const newEvent = {
@@ -1035,6 +1385,9 @@
           scheduleEvents.push(newEvent);
           calendar.addEvent(newEvent);
           document.getElementById('scheduleFeedback').textContent = 'Open shift added to the roster for assignment.';
+          addActivity('Open shift created', 'A new unassigned relief shift was added to the roster.');
+          renderReportPreview();
+          saveDashboardState();
         }
       });
 
@@ -1068,8 +1421,106 @@
       }
     });
 
+    function setFirebaseStatus(message) {
+      document.getElementById('firebaseStatus').textContent = message;
+    }
+
+    async function connectFirebase(autoConnect = false) {
+      const input = document.getElementById('firebaseConfigInput');
+      const rawConfig = input.value.trim();
+
+      if (!rawConfig) {
+        setFirebaseStatus('Paste your Firebase web config JSON to connect Firestore sync.');
+        return;
+      }
+
+      if (!window.firebase?.firestore) {
+        setFirebaseStatus('Firebase scripts are unavailable in this browser session.');
+        return;
+      }
+
+      let config;
+
+      try {
+        config = JSON.parse(rawConfig);
+      } catch (error) {
+        setFirebaseStatus('Firebase config must be valid JSON.');
+        return;
+      }
+
+      if (!config.apiKey || !config.projectId || !config.appId) {
+        setFirebaseStatus('Firebase config needs at least apiKey, projectId, and appId.');
+        return;
+      }
+
+      try {
+        let app = firebase.apps.find(existingApp => existingApp.name === firebaseAppName);
+        if (!app) {
+          app = firebase.initializeApp(config, firebaseAppName);
+        }
+
+        firebaseDb = app.firestore();
+        firebaseSyncEnabled = true;
+        localStorage.setItem(firebaseConfigStorageKey, rawConfig);
+        setFirebaseStatus(`Connected to Firebase project ${config.projectId}. Syncing dashboard state...`);
+
+        const snapshot = await firebaseDb.collection(firebaseCollectionName).doc(firebaseDocumentName).get();
+
+        if (snapshot.exists && applyLoadedState(snapshot.data())) {
+          renderAll();
+          syncCalendarFromState();
+          addActivity('Firebase connected', `Loaded synced dashboard data from ${config.projectId}.`);
+        } else {
+          await firebaseDb.collection(firebaseCollectionName).doc(firebaseDocumentName).set(serializeState());
+          addActivity('Firebase connected', `Created a new dashboard document in ${config.projectId}.`);
+        }
+
+        setFirebaseStatus(`Firebase sync active for ${config.projectId}. Button actions now persist to Firestore.`);
+        saveDashboardState();
+      } catch (error) {
+        firebaseDb = null;
+        firebaseSyncEnabled = false;
+        setFirebaseStatus(`Firebase connection failed: ${error.message}`);
+
+        if (!autoConnect) {
+          addActivity('Firebase unavailable', error.message);
+        }
+      }
+    }
+
+    function disconnectFirebase() {
+      firebaseSyncEnabled = false;
+      firebaseDb = null;
+      localStorage.removeItem(firebaseConfigStorageKey);
+      setFirebaseStatus('Local demo mode active. Firebase sync has been disabled for this session.');
+      addActivity('Firebase disconnected', 'The dashboard returned to local demo mode.');
+      saveDashboardState();
+    }
+
+    async function restoreFirebaseSession() {
+      const savedConfig = localStorage.getItem(firebaseConfigStorageKey);
+
+      if (!savedConfig) {
+        return;
+      }
+
+      document.getElementById('firebaseConfigInput').value = savedConfig;
+      await connectFirebase(true);
+    }
+
+    function renderAll() {
+      renderGuardDirectory();
+      renderGuardProfile();
+      renderAttendanceOptions();
+      renderSitesList();
+      renderIncidentList();
+      renderReportPreview();
+      renderActivityFeed();
+      renderPatrolState();
+    }
+
     document.getElementById('simulateUploadBtn').addEventListener('click', () => {
-      const selectedGuard = guardData.find(entry => entry.id === selectedGuardId);
+      const selectedGuard = getSelectedGuard();
       const documentType = document.getElementById('documentType').value;
       const fileInput = document.getElementById('guardDocumentInput');
       const fileName = sanitizeFileName(
@@ -1077,17 +1528,30 @@
         `${documentType.toLowerCase().replace(/\s+/g, '-')}-scan.pdf`
       );
 
-      selectedGuard.documents.unshift({
-        type: documentType,
-        fileName,
-        state: 'Pending review',
-        uploadedAt: new Date().toLocaleString('en-ZA', { dateStyle: 'medium', timeStyle: 'short' })
-      });
+      const existingDocument = selectedGuard.documents.find(document => document.type === documentType);
+
+      if (existingDocument) {
+        existingDocument.fileName = fileName;
+        existingDocument.state = 'Pending review';
+        existingDocument.uploadedAt = new Date().toLocaleString('en-ZA', { dateStyle: 'medium', timeStyle: 'short' });
+      } else {
+        selectedGuard.documents.unshift({
+          type: documentType,
+          fileName,
+          state: 'Pending review',
+          uploadedAt: new Date().toLocaleString('en-ZA', { dateStyle: 'medium', timeStyle: 'short' })
+        });
+      }
 
       fileInput.value = '';
-      document.getElementById('documentUploadStatus').textContent = `${documentType} added to ${selectedGuard.name}'s profile for verification.`;
+      document.getElementById('documentUploadStatus').textContent = existingDocument
+        ? `${documentType} refreshed for ${selectedGuard.name} and queued for review again.`
+        : `${documentType} added to ${selectedGuard.name}'s profile for verification.`;
+      addActivity('Compliance updated', `${documentType} uploaded for ${selectedGuard.name}.`);
       renderGuardDirectory();
       renderGuardProfile();
+      renderReportPreview();
+      saveDashboardState();
     });
 
     document.getElementById('incidentAttachBtn').addEventListener('click', () => {
@@ -1113,7 +1577,7 @@
       }
 
       incidentData.unshift({
-        id: `INC-${String(2400 + incidentData.length + 1).padStart(4, '0')}`,
+        id: generateIncidentId(),
         type: document.getElementById('incidentType').value,
         severity: document.getElementById('incidentSeverity').value,
         location,
@@ -1121,30 +1585,46 @@
         description,
         attachment: sanitizeFileName(attachmentInput.files[0]?.name, 'No media attached'),
         status: 'Open',
-        time: new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })
+        time: formatCurrentTime()
       });
 
       event.target.reset();
       attachmentInput.value = '';
       document.getElementById('incidentAttachmentStatus').textContent = 'No attachment selected.';
+      addActivity('Incident submitted', `${incidentData[0].id} logged at ${location}.`);
       renderIncidentList();
+      renderReportPreview();
+      saveDashboardState();
     });
 
     document.getElementById('autoScheduleBtn').addEventListener('click', () => {
       ensureCalendar();
 
-      if (!scheduleEvents.some(event => event.title === 'Relief Patrol • Menlyn')) {
-        const weekStart = getStartOfWeek(new Date());
-        const reliefShift = {
-          title: 'Relief Patrol • Menlyn',
-          start: atWeekTime(weekStart, 2, 10, 0),
-          end: atWeekTime(weekStart, 2, 18, 0),
-          color: '#f59e0b'
-        };
+      const nextTemplate = reliefShiftTemplates.find(template => !scheduleEvents.some(event => event.title === template.title));
+      const template = nextTemplate || reliefShiftTemplates[0];
+      const weekStart = getStartOfWeek(new Date());
+      const reliefShift = {
+        title: template.title,
+        start: atWeekTime(weekStart, template.dayOffset, template.startHour, 0),
+        end: atWeekTime(weekStart, template.dayOffset, template.endHour, 0),
+        color: template.color
+      };
+
+      if (nextTemplate) {
         scheduleEvents.push(reliefShift);
 
         if (calendar) {
           calendar.addEvent(reliefShift);
+        }
+      } else {
+        scheduleEvents = scheduleEvents.map(event => event.title === template.title ? reliefShift : event);
+
+        if (calendar) {
+          const existingEvent = calendar.getEvents().find(event => event.title === template.title);
+          if (existingEvent) {
+            existingEvent.setStart(reliefShift.start);
+            existingEvent.setEnd(reliefShift.end);
+          }
         }
       }
 
@@ -1152,86 +1632,182 @@
         renderCalendarFallback();
       }
 
-      document.getElementById('scheduleFeedback').textContent = 'Auto-schedule simulated: Menlyn relief shift added to the roster.';
+      document.getElementById('scheduleFeedback').textContent = `${template.title} prepared and added to the roster.`;
+      addActivity('Auto-schedule completed', `${template.title} prepared for the active week roster.`);
+      renderReportPreview();
+      saveDashboardState();
     });
 
     document.getElementById('publishRosterBtn').addEventListener('click', () => {
       ensureCalendar();
+      reportGenerated = true;
       document.getElementById('scheduleFeedback').textContent = `Roster published with ${calendar ? calendar.getEvents().length : scheduleEvents.length} scheduled shift(s).`;
+      document.getElementById('reportStatus').textContent = 'Roster publish summary pushed into the live compliance snapshot.';
+      addActivity('Roster published', `${calendar ? calendar.getEvents().length : scheduleEvents.length} shifts prepared for team distribution.`);
+      renderReportPreview();
+      saveDashboardState();
     });
 
     document.getElementById('addGuardBtn').addEventListener('click', () => {
-      let newGuard = guardData.find(entry => entry.id === 'SG-155');
+      const nextCandidate = guardPipeline.find(candidate => !guardData.some(existingGuard => existingGuard.id === candidate.id));
+      const newGuard = nextCandidate || guardPipeline[guardPipeline.length - 1];
 
-      if (!newGuard) {
-        newGuard = {
-          id: 'SG-155',
-          name: 'Ayanda Nkosi',
-          pay: 'R29/hr',
-          certifications: 'PSIRA Gr C',
-          certificationExpiry: '2026-11',
-          status: 'Available',
-          statusClass: 'status-resolved',
-          site: 'Rosebank Relief Pool',
-          shift: 'Standby for weekend deployment',
-          contact: 'ayanda.n@secureguard.co.za • 084 610 1108',
-          skills: ['Reception cover', 'Patrol support'],
-          documents: [
-            { type: 'PSIRA Certificate', fileName: 'ayanda-psira.pdf', state: 'Verified', uploadedAt: '10 Mar 2026' }
-          ]
+      if (nextCandidate) {
+        guardData.push(cloneGuard(newGuard));
+        const weekStart = getStartOfWeek(new Date());
+        const onboardingEvent = {
+          title: `${newGuard.name.split(' ')[0]} • Onboarding Briefing`,
+          start: atWeekTime(weekStart, 1, 9, 0),
+          end: atWeekTime(weekStart, 1, 10, 0),
+          color: '#2563eb'
         };
-        guardData.push(newGuard);
+        scheduleEvents.push(onboardingEvent);
+
+        if (calendar) {
+          calendar.addEvent(onboardingEvent);
+        }
       }
 
       selectedGuardId = newGuard.id;
-      renderGuardDirectory();
-      renderGuardProfile();
-      document.getElementById('guardActionStatus').textContent = `${newGuard.name} added to the relief pool and selected for review.`;
+      renderAll();
+      document.getElementById('guardActionStatus').textContent = nextCandidate
+        ? `${newGuard.name} added to the relief pool, added to attendance options, and scheduled for onboarding.`
+        : `${newGuard.name} is already active in the dashboard and has been selected for review.`;
+      addActivity('Guard roster updated', nextCandidate
+        ? `${newGuard.name} joined the roster and received an onboarding shift.`
+        : `${newGuard.name} reviewed from the active roster.`);
+      saveDashboardState();
     });
 
     document.getElementById('clockInBtn').addEventListener('click', () => {
       const selectedOfficer = document.getElementById('attendanceGuardSelect').value;
-      document.getElementById('attendanceStatus').textContent = `${selectedOfficer} clocked in successfully with GPS and photo verification.`;
+      const selectedGuard = guardData.find(guard => buildAttendanceLabel(guard) === selectedOfficer);
+      const existingSession = selectedGuard ? attendanceSessions[selectedGuard.id] : null;
+      const nowLabel = formatCurrentTime();
+
+      if (selectedGuard) {
+        if (existingSession?.clockedIn) {
+          attendanceSessions[selectedGuard.id] = {
+            clockedIn: false,
+            clockInTime: existingSession.clockInTime || existingSession.lastActionTime || nowLabel,
+            clockOutTime: nowLabel,
+            lastActionTime: nowLabel
+          };
+          selectedGuard.status = 'Off Duty';
+          document.getElementById('attendanceStatus').textContent = `${selectedOfficer} clocked out successfully at ${nowLabel}.`;
+          addActivity('Clock-out recorded', `${selectedGuard.name} clocked out at ${nowLabel}.`);
+        } else {
+          attendanceSessions[selectedGuard.id] = {
+            clockedIn: true,
+            clockInTime: nowLabel,
+            clockOutTime: '',
+            lastActionTime: nowLabel
+          };
+          selectedGuard.status = 'On Duty';
+          document.getElementById('attendanceStatus').textContent = `${selectedOfficer} clocked in successfully with GPS and photo verification at ${nowLabel}.`;
+          addActivity('Clock-in recorded', `${selectedGuard.name} clocked in at ${nowLabel}.`);
+        }
+      }
+
+      renderGuardDirectory();
+      renderGuardProfile();
+      renderReportPreview();
+      saveDashboardState();
     });
 
     document.getElementById('panicBtn').addEventListener('click', () => {
       const selectedOfficer = document.getElementById('attendanceGuardSelect').value;
       panicAlertActive = !panicAlertActive;
+      const selectedGuard = guardData.find(guard => buildAttendanceLabel(guard) === selectedOfficer);
+      const location = selectedGuard?.site || 'Field team';
       document.getElementById('attendanceStatus').textContent = panicAlertActive
-        ? `SOS alert sent for ${selectedOfficer}. Dispatch has been notified.`
+        ? `SOS alert sent for ${selectedOfficer}. Dispatch has been notified and a critical incident has been created.`
         : `SOS alert for ${selectedOfficer} acknowledged and cleared by dispatch.`;
+
+      if (panicAlertActive) {
+        incidentData.unshift({
+          id: generateIncidentId(),
+          type: 'Medical Emergency',
+          severity: 'Critical',
+          location,
+          reporter: selectedGuard?.name || selectedOfficer,
+          description: 'Emergency panic signal triggered from the attendance console. Immediate supervisor response required.',
+          attachment: 'Live GPS ping attached',
+          status: 'Escalated',
+          time: formatCurrentTime()
+        });
+        addActivity('SOS triggered', `${selectedOfficer} sent a panic alert from ${location}.`);
+      } else {
+        addActivity('SOS cleared', `${selectedOfficer}'s panic alert was acknowledged by dispatch.`);
+      }
+
+      renderIncidentList();
+      renderReportPreview();
+      saveDashboardState();
     });
 
     document.getElementById('startPatrolBtn').addEventListener('click', () => {
-      patrolRouteActive = !patrolRouteActive;
-      document.getElementById('patrolStatus').textContent = patrolRouteActive
-        ? 'New patrol route started for Sandton Mall. Checkpoint 1 of 8 is ready for scan.'
-        : 'Patrol route paused. Resume when the officer is ready to continue checkpoint scans.';
+      if (!patrolProgress.active) {
+        patrolProgress.active = true;
+        patrolProgress.currentCheckpoint = 1;
+        document.getElementById('startPatrolBtn').textContent = 'Scan Next Checkpoint';
+        document.getElementById('patrolStatus').textContent = `Patrol started for ${patrolProgress.site}. Checkpoint 1 of ${patrolProgress.totalCheckpoints} is ready for scan.`;
+        addActivity('Patrol started', `${patrolProgress.site} checkpoint route is now active.`);
+      } else if (patrolProgress.currentCheckpoint < patrolProgress.totalCheckpoints) {
+        patrolProgress.currentCheckpoint += 1;
+        document.getElementById('patrolStatus').textContent = `Checkpoint ${patrolProgress.currentCheckpoint} of ${patrolProgress.totalCheckpoints} cleared for ${patrolProgress.site}.`;
+        addActivity('Checkpoint scanned', `${patrolProgress.site} checkpoint ${patrolProgress.currentCheckpoint} completed.`);
+      } else {
+        patrolProgress.active = false;
+        patrolProgress.currentCheckpoint = 0;
+        document.getElementById('startPatrolBtn').textContent = 'Start New Patrol Route';
+        document.getElementById('patrolStatus').textContent = `Patrol route completed for ${patrolProgress.site}. All ${patrolProgress.totalCheckpoints} checkpoints were covered.`;
+        addActivity('Patrol completed', `${patrolProgress.site} route closed successfully.`);
+      }
+
+      saveDashboardState();
     });
 
     document.getElementById('addSiteBtn').addEventListener('click', () => {
-      const sitesList = document.querySelector('#sites ul');
-      const existingSite = Array.from(sitesList.querySelectorAll('li')).find(item => item.textContent.includes('Rosebank Banking Plaza'));
+      const nextSite = sitePipeline.find(site => !siteData.includes(site)) || sitePipeline[sitePipeline.length - 1];
 
-      if (!existingSite) {
-        const newSite = document.createElement('li');
-        newSite.textContent = 'Rosebank Banking Plaza – 4 guards • Post orders draft in review';
-        sitesList.appendChild(newSite);
+      if (!siteData.includes(nextSite)) {
+        siteData.push(nextSite);
       }
 
-      document.getElementById('siteActionStatus').textContent = 'Rosebank Banking Plaza added to the client site list for onboarding.';
+      renderSitesList();
+      document.getElementById('siteActionStatus').textContent = `${nextSite.split(' – ')[0]} added to the client site list and included in live reporting.`;
+      addActivity('Site portfolio updated', `${nextSite.split(' – ')[0]} added for onboarding.`);
+      renderReportPreview();
+      saveDashboardState();
     });
 
     document.getElementById('generateReportBtn').addEventListener('click', () => {
       reportGenerated = !reportGenerated;
       document.getElementById('reportStatus').textContent = reportGenerated
-        ? 'March compliance report generated successfully and queued for export.'
-        : 'March compliance report refreshed with the latest roster and incident data.';
+        ? 'March compliance report generated successfully with the latest roster, incident, and compliance metrics.'
+        : 'March compliance report switched back to live preview mode.';
+      addActivity('Compliance report updated', reportGenerated
+        ? 'March compliance report generated from current dashboard metrics.'
+        : 'Compliance report returned to live preview mode.');
+      renderReportPreview();
+      saveDashboardState();
     });
 
-    renderGuardDirectory();
-    renderGuardProfile();
-    renderIncidentList();
+    document.getElementById('connectFirebaseBtn').addEventListener('click', () => {
+      connectFirebase(false);
+    });
+
+    document.getElementById('disconnectFirebaseBtn').addEventListener('click', disconnectFirebase);
+
+    loadLocalState();
+
+    if (!activityFeed.length) {
+      addActivity('Dashboard ready', 'The SecureGuard prototype is loaded and running in demo mode.');
+    }
+
+    renderAll();
+    restoreFirebaseSession();
   </script>
 
 </body>
