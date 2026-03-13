@@ -977,6 +977,10 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script>
     const requiredDocumentTypes = ['PSIRA Certificate', 'ID Copy', 'Training Record'];
+    const SLA_PERCENTAGE_PATTERN = /(\d+%)/;
+    const LOCATION_TOKEN_SPLIT_PATTERN = /[^a-z0-9]+/;
+    const GPS_TIMEOUT_MS = 10000;
+    const GPS_MAX_AGE_MS = 0;
     const guardPipeline = [
       {
         id: 'SG-155',
@@ -1209,6 +1213,10 @@
       return `${guard.name} – ${guard.site}`;
     }
 
+    function extractLocationKeywords(value) {
+      return String(value || '').toLowerCase().split(LOCATION_TOKEN_SPLIT_PATTERN).filter(token => token.length > 3);
+    }
+
     function createId(prefix) {
       return `${prefix}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
     }
@@ -1240,7 +1248,7 @@
         postOrders: detailPart,
         client: namePart || `Site ${index + 1}`,
         notes: '',
-        sla: detailPart.match(/(\d+%)/)?.[1] || 'Pending'
+        sla: detailPart.match(SLA_PERCENTAGE_PATTERN)?.[1] || 'Pending'
       };
     }
 
@@ -1271,8 +1279,8 @@
     }
 
     function sharesLocationKeyword(leftValue, rightValue) {
-      const leftTokens = String(leftValue || '').toLowerCase().split(/[^a-z0-9]+/).filter(token => token.length > 3);
-      const rightTokens = new Set(String(rightValue || '').toLowerCase().split(/[^a-z0-9]+/).filter(token => token.length > 3));
+      const leftTokens = extractLocationKeywords(leftValue);
+      const rightTokens = new Set(extractLocationKeywords(rightValue));
       return leftTokens.some(token => rightTokens.has(token));
     }
 
@@ -1382,14 +1390,14 @@
         return;
       }
 
-      const gpsLabel = session.gps?.label || 'GPS not captured';
+      const gpsDisplayText = session.gps?.label || 'GPS not captured';
       proofContainer.innerHTML = `
         <strong>Latest clock-in proof</strong>
         <small>${escapeHtml(selectedGuard.name)} • ${escapeHtml(session.clockedIn ? 'Currently on shift' : `Last action at ${session.lastActionTime || 'Unknown time'}`)}</small>
         <div class="meta-list" style="margin-top:0.75rem;">
           <div><strong>Clock-in time:</strong> ${escapeHtml(session.clockInTime || 'Not yet recorded')}</div>
           <div><strong>Clock-out time:</strong> ${escapeHtml(session.clockOutTime || 'Still clocked in')}</div>
-          <div><strong>GPS:</strong> ${escapeHtml(gpsLabel)}</div>
+          <div><strong>GPS:</strong> ${escapeHtml(gpsDisplayText)}</div>
           <div><strong>Photo:</strong> ${escapeHtml(session.photoName || 'No photo captured')}</div>
         </div>
         ${session.photoPreview ? `<img src="${session.photoPreview}" alt="Clock-in proof for ${escapeHtml(selectedGuard.name)}">` : ''}
@@ -1426,7 +1434,7 @@
             </div>
           </div>
         `;
-      }).join('') : '<div class="empty-state">No sites match the current search.</div>';
+      }).join('') : '<div class="empty-state" role="status">No sites match the current search.</div>';
 
       siteList.querySelectorAll('.site-edit').forEach(button => {
         button.addEventListener('click', () => openEntityModal('site', 'edit', button.dataset.siteId));
@@ -1503,7 +1511,7 @@
           Certifications: ${escapeHtml(guard.certifications)} (expires ${escapeHtml(guard.certificationExpiry)})<br>
           <span class="status ${getGuardStatusClass(guard.status)}">${escapeHtml(guard.status)} – ${escapeHtml(guard.site)}</span>
         </button>
-      `).join('') : '<div class="empty-state">No guards match the current search or status filter.</div>';
+      `).join('') : '<div class="empty-state" role="status">No guards match the current search or status filter.</div>';
 
       directory.querySelectorAll('[data-guard-id]').forEach(card => {
         card.addEventListener('click', () => {
@@ -1517,7 +1525,7 @@
     function renderGuardProfile() {
       const guard = getSelectedGuard();
       if (!guard) {
-        document.getElementById('guardProfile').innerHTML = '<div class="empty-state">Add a guard to view profile details.</div>';
+        document.getElementById('guardProfile').innerHTML = '<div class="empty-state" role="status">Add a guard to view profile details.</div>';
         return;
       }
       const verifiedDocuments = guard.documents.filter(document => document.state === 'Verified').length;
@@ -1651,7 +1659,7 @@
             </div>
           </div>
         `;
-      }).join('') : '<div class="empty-state">No incidents match the current search or status filter.</div>';
+      }).join('') : '<div class="empty-state" role="status">No incidents match the current search or status filter.</div>';
 
       incidentList.querySelectorAll('.incident-back').forEach(button => {
         button.addEventListener('click', () => updateIncidentStatus(button.dataset.incidentId, -1));
@@ -1711,7 +1719,7 @@
             </div>
           </div>
         `;
-      }).join('') : '<div class="empty-state">No roster shifts match the current search or site filter.</div>';
+      }).join('') : '<div class="empty-state" role="status">No roster shifts match the current search or site filter.</div>';
 
       rosterList.querySelectorAll('.roster-edit').forEach(button => {
         button.addEventListener('click', () => openEntityModal('shift', 'edit', button.dataset.shiftId));
@@ -2314,8 +2322,23 @@
         color: formData.get('color').toString().trim()
       });
 
-      if (!shiftRecord.siteName || Number.isNaN(shiftRecord.start.getTime()) || Number.isNaN(shiftRecord.end.getTime()) || shiftRecord.end <= shiftRecord.start) {
-        setEntityModalStatus('Enter a site plus a valid start and end time.');
+      if (!shiftRecord.siteName) {
+        setEntityModalStatus('Enter a site for the roster shift.');
+        return false;
+      }
+
+      if (Number.isNaN(shiftRecord.start.getTime())) {
+        setEntityModalStatus('Enter a valid roster start date and time.');
+        return false;
+      }
+
+      if (Number.isNaN(shiftRecord.end.getTime())) {
+        setEntityModalStatus('Enter a valid roster end date and time.');
+        return false;
+      }
+
+      if (shiftRecord.end <= shiftRecord.start) {
+        setEntityModalStatus('The roster end time must be after the start time.');
         return false;
       }
 
@@ -2519,7 +2542,7 @@
         pendingClockInGps = { label: `GPS unavailable: ${error.message}` };
         updateClockInGpsStatus(pendingClockInGps.label);
         document.getElementById('clockInModalStatus').textContent = 'GPS could not be captured automatically. Attach a photo to continue.';
-      }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+      }, { enableHighAccuracy: true, timeout: GPS_TIMEOUT_MS, maximumAge: GPS_MAX_AGE_MS });
     }
 
     function openClockInModal(guard) {
