@@ -622,7 +622,7 @@
   <header>
     <h1>SecureGuard • Management Dashboard</h1>
     <div class="toolbar-group">
-      <span id="portalSessionBadge" class="session-badge">Portal: Admin / Owner</span>
+      <span id="portalSessionBadge" class="session-badge">Portal session</span>
       <button class="theme-toggle" id="themeToggle">Dark Mode</button>
     </div>
   </header>
@@ -1285,6 +1285,18 @@
     const GPS_MAX_AGE_MS = 0;
     const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
     const CAMERA_JPEG_QUALITY = 0.92;
+    const LIVE_CAMERA_FILE_PREFIX = 'live-camera';
+    const PATROL_MODE_WEIGHTS = {
+      'Risk-first sweep': { perimeter: 2, default: 1.2 },
+      'Perimeter pulse': { perimeter: 3, default: 1 },
+      'Asset protection spiral': { operations: 2.8, default: 1.1 }
+    };
+    const REPORT_RISK_WEIGHTS = {
+      incident: 18,
+      pendingDocument: 8,
+      leaveRequest: 6,
+      checkpointRisk: 4
+    };
     const guardPipeline = [
       {
         id: 'SG-155',
@@ -1507,6 +1519,7 @@
     let pendingClockInCameraStream = null;
     let currentPortalRole = 'Admin / Owner';
     let currentPortalGuardId = 'SG-042';
+    let patrolRouteStatusPinned = false;
 
     const localStateStorageKey = 'secureguard-dashboard-state-v2';
     const firebaseConfigStorageKey = 'secureguard-firebase-config-v1';
@@ -1594,6 +1607,23 @@
 
     function formatSiteSummary(site) {
       return `${site.name} – ${site.guardCount} guards • ${site.postOrders}`;
+    }
+
+    function getStartOfLocalDay(value = new Date()) {
+      const date = new Date(value);
+      date.setHours(0, 0, 0, 0);
+      return date;
+    }
+
+    function parseLocalDateInput(value) {
+      if (!value) {
+        return null;
+      }
+      const [year, month, day] = value.split('-').map(Number);
+      if (!year || !month || !day) {
+        return null;
+      }
+      return new Date(year, month - 1, day);
     }
 
     function clonePatrolRoutes(routes) {
@@ -1816,7 +1846,7 @@
       });
       if (guardMode) {
         document.getElementById('patrolRouteStatus').textContent = 'Route creation is reserved for Admin / Owner. Guards can still run and scan the assigned route.';
-      } else if (!document.getElementById('patrolRouteStatus').textContent.includes('route created')) {
+      } else if (!patrolRouteStatusPinned) {
         document.getElementById('patrolRouteStatus').textContent = 'Create a route to produce a new checkpoint tour instantly.';
       }
 
@@ -1860,12 +1890,15 @@
     }
 
     function buildCheckpointPriority(route, checkpoint, index) {
-      const modeWeight = {
-        'Risk-first sweep': checkpoint.zone.toLowerCase().includes('perimeter') ? 2 : 1.2,
-        'Perimeter pulse': checkpoint.zone.toLowerCase().includes('perimeter') ? 3 : 1,
-        'Asset protection spiral': checkpoint.zone.toLowerCase().includes('operations') || checkpoint.zone.toLowerCase().includes('interior') ? 2.8 : 1.1
-      }[route.mode] || 1;
+      const modeConfig = PATROL_MODE_WEIGHTS[route.mode] || { perimeter: 1, operations: 1, default: 1 };
+      const zoneLabel = checkpoint.zone.toLowerCase();
+      const modeWeight = route.mode === 'Asset protection spiral'
+        ? ((zoneLabel.includes('operations') || zoneLabel.includes('interior')) ? modeConfig.operations : modeConfig.default)
+        : (zoneLabel.includes('perimeter') ? modeConfig.perimeter : modeConfig.default);
       const scanBoost = checkpoint.scanType.includes('GPS') ? 0.8 : checkpoint.scanType.includes('Photo') ? 0.5 : 0.2;
+      // SpectraRoute prioritises higher-risk checkpoints first (risk * 10), then nudges
+      // the sequence with route-mode weighting and proof-rich scans while slightly
+      // reducing later checkpoints so the initial site layout still influences ordering.
       return (getRiskScore(checkpoint.risk) * 10) + modeWeight + scanBoost - (index * 0.15);
     }
 
@@ -1903,9 +1936,9 @@
       const pending = leaveRequests.filter(request => request.status === 'Pending').length;
       const approved = leaveRequests.filter(request => request.status === 'Approved').length;
       const thisWeek = leaveRequests.filter(request => {
-        const today = new Date();
-        const start = new Date(request.startDate);
-        return Number.isFinite(start.getTime()) && Math.abs(start - today) <= WEEK_IN_MS;
+        const today = getStartOfLocalDay();
+        const start = parseLocalDateInput(request.startDate);
+        return start instanceof Date && Number.isFinite(start.getTime()) && start >= today && (start - today) <= WEEK_IN_MS;
       }).length;
 
       leaveMetrics.innerHTML = [
@@ -2084,7 +2117,13 @@
       const routePlan = getPatrolPlan(activePatrolRoute);
       const audience = document.getElementById('reportAudienceSelect')?.value || 'Admin / Owner';
       const focus = document.getElementById('reportFocusSelect')?.value || 'Operational Intelligence';
-      const riskIndex = Math.min(100, (activeIncidentCount * 18) + (pendingDocumentCount * 8) + (pendingLeaveCount * 6) + (routePlan.nextCheckpoint ? getRiskScore(routePlan.nextCheckpoint.risk) * 4 : 0));
+      const riskIndex = Math.min(
+        100,
+        (activeIncidentCount * REPORT_RISK_WEIGHTS.incident) +
+        (pendingDocumentCount * REPORT_RISK_WEIGHTS.pendingDocument) +
+        (pendingLeaveCount * REPORT_RISK_WEIGHTS.leaveRequest) +
+        (routePlan.nextCheckpoint ? getRiskScore(routePlan.nextCheckpoint.risk) * REPORT_RISK_WEIGHTS.checkpointRisk : 0)
+      );
       const operationalHealth = Math.max(0, 100 - riskIndex);
 
       document.getElementById('reportPreview').innerHTML = [
@@ -3233,8 +3272,17 @@
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const context = canvas.getContext('2d');
+      if (!context) {
+        document.getElementById('clockInModalStatus').textContent = 'Live photo capture is unavailable right now. You can still upload a photo manually.';
+        return;
+      }
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      setClockInPhotoPreview(canvas.toDataURL('image/jpeg', CAMERA_JPEG_QUALITY), `live-camera-${Date.now()}.jpg`, 'Live camera capture');
+      try {
+        setClockInPhotoPreview(canvas.toDataURL('image/jpeg', CAMERA_JPEG_QUALITY), `${LIVE_CAMERA_FILE_PREFIX}-${Date.now()}.jpg`, 'Live camera capture');
+      } catch (error) {
+        document.getElementById('clockInModalStatus').textContent = 'The live photo could not be saved. Try again or upload a photo manually.';
+        return;
+      }
       document.getElementById('clockInPhotoInput').value = '';
       document.getElementById('clockInModalStatus').textContent = 'Live photo captured successfully. Confirm clock-in when ready.';
     }
@@ -3283,7 +3331,7 @@
         updateClockInGpsStatus(`${pendingClockInGps.label}\nDirect site match: ${locationHint}\nMovement: ${pendingClockInGps.movement}\nCaptured at ${formatCurrentTime()}`);
         document.getElementById('clockInModalStatus').textContent = 'GPS captured. Add a photo and confirm clock-in.';
       }, error => {
-        pendingClockInGps = { label: `GPS unavailable: ${error.message}`, locationHint: activeGuard?.site || 'Site unknown', movement: 'Device movement unavailable' };
+        pendingClockInGps = { label: 'GPS access denied or unavailable.', locationHint: activeGuard?.site || 'Site unknown', movement: 'Device movement unavailable' };
         updateClockInGpsStatus(pendingClockInGps.label);
         document.getElementById('clockInModalStatus').textContent = 'GPS could not be captured automatically. Attach a photo to continue.';
       }, { enableHighAccuracy: true, timeout: GPS_TIMEOUT_MS, maximumAge: GPS_MAX_AGE_MS });
@@ -3507,6 +3555,7 @@
         site: getSelectedPatrolRoute()?.site || defaultPatrolProgress.site,
         algorithmMode: getSelectedPatrolRoute()?.mode || defaultPatrolProgress.algorithmMode
       };
+      patrolRouteStatusPinned = false;
       renderPatrolState();
       renderReportPreview();
       saveDashboardState();
@@ -3519,6 +3568,7 @@
       const checkpointLines = document.getElementById('patrolCheckpointInput').value.split('\n').map(line => line.trim()).filter(Boolean);
 
       if (!site || !checkpointLines.length) {
+        patrolRouteStatusPinned = false;
         document.getElementById('patrolRouteStatus').textContent = 'Add a site name and at least one checkpoint to create a route.';
         return;
       }
@@ -3538,6 +3588,7 @@
         site: route.site,
         algorithmMode: route.mode
       };
+      patrolRouteStatusPinned = true;
       event.target.reset();
       document.getElementById('patrolRouteStatus').textContent = `${route.site} route created with ${route.checkpoints.length} smart checkpoints.`;
       addActivity('Patrol route created', `${route.site} route added with ${route.mode} sequencing.`);
@@ -3548,8 +3599,14 @@
       event.preventDefault();
       const startDate = document.getElementById('leaveStartDate').value;
       const endDate = document.getElementById('leaveEndDate').value;
-      if (!startDate || !endDate || endDate < startDate) {
-        document.getElementById('leaveStatus').textContent = 'Choose a valid leave date range before submitting the form.';
+      const startDateValue = parseLocalDateInput(startDate);
+      const endDateValue = parseLocalDateInput(endDate);
+      if (!startDate || !endDate || !startDateValue || !endDateValue) {
+        document.getElementById('leaveStatus').textContent = 'Select both a start date and an end date before submitting the leave form.';
+        return;
+      }
+      if (endDateValue < startDateValue) {
+        document.getElementById('leaveStatus').textContent = 'End date must be on or after the selected start date.';
         return;
       }
 
@@ -3659,7 +3716,10 @@
       } else if (nextCheckpoint) {
         patrolProgress.completedCheckpointIds = [...new Set([...patrolProgress.completedCheckpointIds, nextCheckpoint.id])];
         patrolProgress.currentCheckpoint = patrolProgress.completedCheckpointIds.length;
-        patrolProgress.readyCheckpointId = getPatrolPlan(route).orderedCheckpoints.find(checkpoint => !patrolProgress.completedCheckpointIds.includes(checkpoint.id))?.id || '';
+        const upcomingCheckpoint = route.checkpoints.find(checkpoint => !patrolProgress.completedCheckpointIds.includes(checkpoint.id))
+          || getPatrolPlan(route).orderedCheckpoints.find(checkpoint => !patrolProgress.completedCheckpointIds.includes(checkpoint.id))
+          || null;
+        patrolProgress.readyCheckpointId = upcomingCheckpoint?.id || '';
         patrolProgress.lastCheckpointName = nextCheckpoint.name;
         patrolProgress.lastScanTime = formatCurrentTime();
         addActivity('Checkpoint scanned', `${route.site} • ${nextCheckpoint.name} completed using ${nextCheckpoint.scanType}.`);
@@ -3669,7 +3729,6 @@
           document.getElementById('patrolStatus').textContent = `Patrol route completed for ${route.site}. All ${route.checkpoints.length} checkpoints were covered.`;
           addActivity('Patrol completed', `${route.site} route closed successfully.`);
         } else {
-          const upcomingCheckpoint = getPatrolPlan(route).nextCheckpoint;
           document.getElementById('patrolStatus').textContent = `${nextCheckpoint.name} scanned. Next smart checkpoint: ${upcomingCheckpoint?.name || 'none'}.`;
         }
       } else {
@@ -3768,7 +3827,7 @@
         clockOutTime: '',
         lastActionTime: nowLabel,
         gps: pendingClockInGps || { label: 'GPS unavailable during clock-in.' },
-        photoName: photoFile ? sanitizeFileName(photoFile.name, 'clock-in-photo.jpg') : pendingClockInPhotoName || 'live-camera-capture.jpg',
+        photoName: photoFile ? sanitizeFileName(photoFile.name, 'clock-in-photo.jpg') : pendingClockInPhotoName || `${LIVE_CAMERA_FILE_PREFIX}-${Date.now()}.jpg`,
         photoPreview: pendingClockInPhotoPreview,
         photoSource: photoFile ? 'Uploaded photo' : (pendingClockInPhotoSource || 'Live camera capture')
       };
