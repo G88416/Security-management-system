@@ -374,8 +374,8 @@
     <div class="card">
       <h2 style="margin-bottom:1rem;">Employee / Guard Management</h2>
       <div class="action-row">
-        <button class="btn">+ Add New Guard</button>
-        <span class="inline-feedback">Select a guard to review compliance, contact details, and uploaded documents.</span>
+        <button id="addGuardBtn" type="button" class="btn">+ Add New Guard</button>
+        <span id="guardActionStatus" class="inline-feedback">Select a guard to review compliance, contact details, and uploaded documents.</span>
       </div>
 
       <div class="grid-2" style="margin-top:1.2rem; align-items:start;">
@@ -436,13 +436,18 @@
       <p>Mobile-first attendance workflow with GPS geofence, biometric-ready clock-in, offline sync, and panic escalation.</p>
       <div class="form-group">
         <label>Quick Clock-in Simulation</label>
-        <select>
+        <select id="attendanceGuardSelect">
           <option>Thabo Mokoena – Sandton Site</option>
           <option>Nokuthula Zulu – Midrand</option>
         </select>
       </div>
-      <button class="btn btn-success">Clock In (GPS + Photo)</button>
-      <button class="btn btn-danger" style="margin-left:0.6rem;">Panic / SOS</button>
+      <div class="action-row">
+        <div>
+          <button id="clockInBtn" type="button" class="btn btn-success">Clock In (GPS + Photo)</button>
+          <button id="panicBtn" type="button" class="btn btn-danger" style="margin-left:0.6rem;">Panic / SOS</button>
+        </div>
+        <span id="attendanceStatus" class="inline-feedback">Clock-in and SOS actions are available for the selected officer.</span>
+      </div>
     </div>
   </div>
 
@@ -455,7 +460,10 @@
         <li>Site: Sandton Mall – 92% complete</li>
         <li>Site: Menlyn Park – Missed checkpoint #7 (Rear gate)</li>
       </ul>
-      <button class="btn">Start New Patrol Route</button>
+      <div class="action-row">
+        <button id="startPatrolBtn" type="button" class="btn">Start New Patrol Route</button>
+        <span id="patrolStatus" class="inline-feedback">Start a patrol route to simulate checkpoint coverage.</span>
+      </div>
     </div>
   </div>
 
@@ -522,7 +530,10 @@
         <li>Sandton Mall – 8 guards • Post orders v3.1</li>
         <li>Menlyn Corporate Park – 5 guards • SLA compliance 98%</li>
       </ul>
-      <button class="btn">+ Add New Site</button>
+      <div class="action-row">
+        <button id="addSiteBtn" type="button" class="btn">+ Add New Site</button>
+        <span id="siteActionStatus" class="inline-feedback">Add a new client site to the active portfolio.</span>
+      </div>
     </div>
   </div>
 
@@ -532,7 +543,10 @@
       <h2>Reporting & Analytics</h2>
       <p>Dashboards, compliance reports, PDF/Excel export, and read-only reporting views for client stakeholders.</p>
       <p style="margin:1.5rem 0;">[Placeholder – Real-time KPIs, no-show trends, billing export would go here]</p>
-      <button class="btn">Generate March Compliance Report</button>
+      <div class="action-row">
+        <button id="generateReportBtn" type="button" class="btn">Generate March Compliance Report</button>
+        <span id="reportStatus" class="inline-feedback">Generate a compliance snapshot for client reporting.</span>
+      </div>
     </div>
   </div>
 
@@ -747,6 +761,24 @@
     let calendarInitialized = false;
     let usingCalendarFallback = false;
     let scheduleEvents = buildCalendarEvents();
+    let panicAlertActive = false;
+    let patrolRouteActive = false;
+    let reportGenerated = false;
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[character]);
+    }
+
+    function sanitizeFileName(fileName, fallbackName) {
+      const trimmedName = String(fileName || fallbackName || '').trim();
+      return trimmedName.replace(/[^\w.\-() ]+/g, '_').slice(0, 120) || fallbackName;
+    }
 
     function getIncidentStatusClass(status) {
       return {
@@ -770,10 +802,10 @@
       const directory = document.getElementById('guardDirectory');
       directory.innerHTML = guardData.map(guard => `
         <button type="button" class="card guard-card ${guard.id === selectedGuardId ? 'active' : ''}" data-guard-id="${guard.id}">
-          <strong>${guard.name}</strong><br>
-          ${guard.id} • ${guard.pay}<br>
-          Certifications: ${guard.certifications} (expires ${guard.certificationExpiry})<br>
-          <span class="status ${guard.statusClass}">${guard.status} – ${guard.site}</span>
+          <strong>${escapeHtml(guard.name)}</strong><br>
+          ${escapeHtml(guard.id)} • ${escapeHtml(guard.pay)}<br>
+          Certifications: ${escapeHtml(guard.certifications)} (expires ${escapeHtml(guard.certificationExpiry)})<br>
+          <span class="status ${guard.statusClass}">${escapeHtml(guard.status)} – ${escapeHtml(guard.site)}</span>
         </button>
       `).join('');
 
@@ -794,26 +826,26 @@
       profile.innerHTML = `
         <div class="action-row">
           <div>
-            <h3>${guard.name}</h3>
-            <div class="inline-feedback">${guard.id} • ${guard.pay}</div>
+            <h3>${escapeHtml(guard.name)}</h3>
+            <div class="inline-feedback">${escapeHtml(guard.id)} • ${escapeHtml(guard.pay)}</div>
           </div>
-          <span class="status ${guard.statusClass}">${guard.status}</span>
+          <span class="status ${guard.statusClass}">${escapeHtml(guard.status)}</span>
         </div>
         <div class="meta-list">
-          <div><strong>Primary site:</strong> ${guard.site}</div>
-          <div><strong>Current / next shift:</strong> ${guard.shift}</div>
-          <div><strong>Contact:</strong> ${guard.contact}</div>
+          <div><strong>Primary site:</strong> ${escapeHtml(guard.site)}</div>
+          <div><strong>Current / next shift:</strong> ${escapeHtml(guard.shift)}</div>
+          <div><strong>Contact:</strong> ${escapeHtml(guard.contact)}</div>
           <div><strong>Compliance:</strong> ${verifiedDocuments}/${guard.documents.length} documents verified</div>
         </div>
         <div class="tag-row">
-          ${guard.skills.map(skill => `<span class="tag">${skill}</span>`).join('')}
+          ${guard.skills.map(skill => `<span class="tag">${escapeHtml(skill)}</span>`).join('')}
         </div>
         <div class="document-list">
           ${guard.documents.map(document => `
             <div class="document-item">
-              <strong>${document.type}</strong>
-              <span class="status ${document.state === 'Verified' ? 'status-resolved' : 'status-open'}" style="margin-left:0.5rem;">${document.state}</span>
-              <small>${document.fileName} • uploaded ${document.uploadedAt}</small>
+              <strong>${escapeHtml(document.type)}</strong>
+              <span class="status ${document.state === 'Verified' ? 'status-resolved' : 'status-open'}" style="margin-left:0.5rem;">${escapeHtml(document.state)}</span>
+              <small>${escapeHtml(document.fileName)} • uploaded ${escapeHtml(document.uploadedAt)}</small>
             </div>
           `).join('')}
         </div>
@@ -846,19 +878,19 @@
           <div class="incident-item">
             <div class="action-row">
               <div>
-                <h3>${incident.id} • ${incident.type}</h3>
-                <small>${incident.time} • ${incident.location} • Reported by ${incident.reporter}</small>
+                <h3>${escapeHtml(incident.id)} • ${escapeHtml(incident.type)}</h3>
+                <small>${escapeHtml(incident.time)} • ${escapeHtml(incident.location)} • Reported by ${escapeHtml(incident.reporter)}</small>
               </div>
               <div>
-                <span class="status ${getIncidentStatusClass(incident.status)}">${incident.status}</span>
-                <span class="status ${getSeverityClass(incident.severity)}" style="margin-left:0.4rem;">${incident.severity}</span>
+                <span class="status ${getIncidentStatusClass(incident.status)}">${escapeHtml(incident.status)}</span>
+                <span class="status ${getSeverityClass(incident.severity)}" style="margin-left:0.4rem;">${escapeHtml(incident.severity)}</span>
               </div>
             </div>
-            <p style="margin-top:0.85rem;">${incident.description}</p>
-            <small>Attachment: ${incident.attachment || 'No media attached'}</small>
+            <p style="margin-top:0.85rem;">${escapeHtml(incident.description)}</p>
+            <small>Attachment: ${escapeHtml(incident.attachment || 'No media attached')}</small>
             <div class="workflow-track">
               ${incidentWorkflow.map((step, index) => `
-                <span class="workflow-step ${index < currentStageIndex ? 'complete' : ''} ${step === incident.status ? 'current' : ''}">${step}</span>
+                <span class="workflow-step ${index < currentStageIndex ? 'complete' : ''} ${step === incident.status ? 'current' : ''}">${escapeHtml(step)}</span>
               `).join('')}
             </div>
             <div class="action-row" style="margin-top:0.9rem;">
@@ -936,14 +968,14 @@
         const dayEvents = scheduleEvents.filter(event => new Date(event.start).getDay() === ((index + 1) % 7));
         return `
           <div class="fallback-day">
-            <h4>${dayName}</h4>
-            ${dayEvents.length ? dayEvents.map(event => `
-              <div class="fallback-event">
-                <strong>${event.title}</strong>
-                <small>${formatRosterTime(event.start)} – ${formatRosterTime(event.end)}</small>
-              </div>
-            `).join('') : '<small>No shifts planned.</small>'}
-          </div>
+              <h4>${escapeHtml(dayName)}</h4>
+              ${dayEvents.length ? dayEvents.map(event => `
+                <div class="fallback-event">
+                  <strong>${escapeHtml(event.title)}</strong>
+                  <small>${escapeHtml(formatRosterTime(event.start))} – ${escapeHtml(formatRosterTime(event.end))}</small>
+                </div>
+              `).join('') : '<small>No shifts planned.</small>'}
+            </div>
         `;
       }).join('');
 
@@ -1035,7 +1067,10 @@
       const selectedGuard = guardData.find(entry => entry.id === selectedGuardId);
       const documentType = document.getElementById('documentType').value;
       const fileInput = document.getElementById('guardDocumentInput');
-      const fileName = fileInput.files[0]?.name || `${documentType.toLowerCase().replace(/\s+/g, '-')}-scan.pdf`;
+      const fileName = sanitizeFileName(
+        fileInput.files[0]?.name,
+        `${documentType.toLowerCase().replace(/\s+/g, '-')}-scan.pdf`
+      );
 
       selectedGuard.documents.unshift({
         type: documentType,
@@ -1055,7 +1090,7 @@
     });
 
     document.getElementById('incidentAttachment').addEventListener('change', event => {
-      const fileName = event.target.files[0]?.name || 'No attachment selected.';
+      const fileName = sanitizeFileName(event.target.files[0]?.name, 'No attachment selected.');
       document.getElementById('incidentAttachmentStatus').textContent = fileName;
     });
 
@@ -1063,14 +1098,23 @@
       event.preventDefault();
 
       const attachmentInput = document.getElementById('incidentAttachment');
+      const location = document.getElementById('incidentLocation').value.trim();
+      const reporter = document.getElementById('incidentReporter').value.trim();
+      const description = document.getElementById('incidentDescription').value.trim();
+
+      if (!location || !reporter || !description) {
+        document.getElementById('incidentSummary').textContent = 'Location, reporter, and description are required to submit an incident.';
+        return;
+      }
+
       incidentData.unshift({
         id: `INC-${String(2400 + incidentData.length + 1).padStart(4, '0')}`,
         type: document.getElementById('incidentType').value,
         severity: document.getElementById('incidentSeverity').value,
-        location: document.getElementById('incidentLocation').value,
-        reporter: document.getElementById('incidentReporter').value,
-        description: document.getElementById('incidentDescription').value,
-        attachment: attachmentInput.files[0]?.name || 'No media attached',
+        location,
+        reporter,
+        description,
+        attachment: sanitizeFileName(attachmentInput.files[0]?.name, 'No media attached'),
         status: 'Open',
         time: new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })
       });
@@ -1109,6 +1153,75 @@
     document.getElementById('publishRosterBtn').addEventListener('click', () => {
       ensureCalendar();
       document.getElementById('scheduleFeedback').textContent = `Roster published with ${calendar ? calendar.getEvents().length : scheduleEvents.length} scheduled shift(s).`;
+    });
+
+    document.getElementById('addGuardBtn').addEventListener('click', () => {
+      let newGuard = guardData.find(entry => entry.id === 'SG-155');
+
+      if (!newGuard) {
+        newGuard = {
+          id: 'SG-155',
+          name: 'Ayanda Nkosi',
+          pay: 'R29/hr',
+          certifications: 'PSIRA Gr C',
+          certificationExpiry: '2026-11',
+          status: 'Available',
+          statusClass: 'status-resolved',
+          site: 'Rosebank Relief Pool',
+          shift: 'Standby for weekend deployment',
+          contact: 'ayanda.n@secureguard.co.za • 084 610 1108',
+          skills: ['Reception cover', 'Patrol support'],
+          documents: [
+            { type: 'PSIRA Certificate', fileName: 'ayanda-psira.pdf', state: 'Verified', uploadedAt: '10 Mar 2026' }
+          ]
+        };
+        guardData.push(newGuard);
+      }
+
+      selectedGuardId = newGuard.id;
+      renderGuardDirectory();
+      renderGuardProfile();
+      document.getElementById('guardActionStatus').textContent = `${newGuard.name} added to the relief pool and selected for review.`;
+    });
+
+    document.getElementById('clockInBtn').addEventListener('click', () => {
+      const selectedOfficer = document.getElementById('attendanceGuardSelect').value;
+      document.getElementById('attendanceStatus').textContent = `${selectedOfficer} clocked in successfully with GPS and photo verification.`;
+    });
+
+    document.getElementById('panicBtn').addEventListener('click', () => {
+      const selectedOfficer = document.getElementById('attendanceGuardSelect').value;
+      panicAlertActive = !panicAlertActive;
+      document.getElementById('attendanceStatus').textContent = panicAlertActive
+        ? `SOS alert sent for ${selectedOfficer}. Dispatch has been notified.`
+        : `SOS alert for ${selectedOfficer} acknowledged and cleared by dispatch.`;
+    });
+
+    document.getElementById('startPatrolBtn').addEventListener('click', () => {
+      patrolRouteActive = !patrolRouteActive;
+      document.getElementById('patrolStatus').textContent = patrolRouteActive
+        ? 'New patrol route started for Sandton Mall. Checkpoint 1 of 8 is ready for scan.'
+        : 'Patrol route paused. Resume when the officer is ready to continue checkpoint scans.';
+    });
+
+    document.getElementById('addSiteBtn').addEventListener('click', () => {
+      const sitesList = document.querySelector('#sites ul');
+      const existingSite = Array.from(sitesList.querySelectorAll('li')).find(item => item.textContent.includes('Rosebank Banking Plaza'));
+
+      if (!existingSite) {
+        const newSite = document.createElement('li');
+        newSite.textContent = 'Rosebank Banking Plaza – 4 guards • Post orders draft in review';
+        sitesList.appendChild(newSite);
+      }
+
+      document.getElementById('siteActionStatus').textContent = 'Rosebank Banking Plaza added to the client site list for onboarding.';
+    });
+
+    document.getElementById('generateReportBtn').addEventListener('click', () => {
+      reportGenerated = !reportGenerated;
+      document.getElementById('reportStatus').textContent = reportGenerated
+        ? 'March compliance report generated successfully and queued for export.'
+        : 'March compliance report refreshed with the latest roster and incident data.';
     });
 
     renderGuardDirectory();
