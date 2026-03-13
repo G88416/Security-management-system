@@ -671,6 +671,7 @@
         <div class="role-card">
           <h3>Login simulation</h3>
           <form id="portalLoginForm" style="margin-top:1rem;">
+            <input type="text" name="portalUsername" autocomplete="username" value="secureguard-demo" hidden>
             <div class="form-group">
               <label for="portalRoleSelect">Portal role</label>
               <select id="portalRoleSelect">
@@ -1282,6 +1283,8 @@
     const LOCATION_TOKEN_SPLIT_PATTERN = /[^a-z0-9]+/;
     const GPS_TIMEOUT_MS = 10000;
     const GPS_MAX_AGE_MS = 0;
+    const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
+    const CAMERA_JPEG_QUALITY = 0.92;
     const guardPipeline = [
       {
         id: 'SG-155',
@@ -1488,10 +1491,7 @@
     let panicAlertActive = false;
     let reportGenerated = false;
     let attendanceSessions = {};
-    let patrolRoutes = defaultPatrolRoutes.map(route => ({
-      ...route,
-      checkpoints: route.checkpoints.map(checkpoint => ({ ...checkpoint }))
-    }));
+    let patrolRoutes = clonePatrolRoutes(defaultPatrolRoutes);
     let patrolProgress = { ...defaultPatrolProgress };
     let selectedPatrolRouteId = defaultPatrolRoutes[0].id;
     let leaveRequests = defaultLeaveRequests.map(request => ({ ...request }));
@@ -1594,6 +1594,13 @@
 
     function formatSiteSummary(site) {
       return `${site.name} – ${site.guardCount} guards • ${site.postOrders}`;
+    }
+
+    function clonePatrolRoutes(routes) {
+      return routes.map(route => ({
+        ...route,
+        checkpoints: Array.isArray(route.checkpoints) ? route.checkpoints.map(checkpoint => ({ ...checkpoint })) : []
+      }));
     }
 
     function normalizeSite(site, index = 0) {
@@ -1898,7 +1905,7 @@
       const thisWeek = leaveRequests.filter(request => {
         const today = new Date();
         const start = new Date(request.startDate);
-        return Number.isFinite(start.getTime()) && Math.abs(start - today) <= 7 * 24 * 60 * 60 * 1000;
+        return Number.isFinite(start.getTime()) && Math.abs(start - today) <= WEEK_IN_MS;
       }).length;
 
       leaveMetrics.innerHTML = [
@@ -2433,10 +2440,7 @@
       }
 
       if (Array.isArray(state.patrolRoutes) && state.patrolRoutes.length) {
-        patrolRoutes = state.patrolRoutes.map(route => ({
-          ...route,
-          checkpoints: Array.isArray(route.checkpoints) ? route.checkpoints.map(checkpoint => ({ ...checkpoint })) : []
-        }));
+        patrolRoutes = clonePatrolRoutes(state.patrolRoutes);
       }
 
       if (Array.isArray(state.leaveRequests) && state.leaveRequests.length) {
@@ -3230,7 +3234,7 @@
       canvas.height = video.videoHeight;
       const context = canvas.getContext('2d');
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      setClockInPhotoPreview(canvas.toDataURL('image/jpeg', 0.92), `live-camera-${Date.now()}.jpg`, 'Live camera capture');
+      setClockInPhotoPreview(canvas.toDataURL('image/jpeg', CAMERA_JPEG_QUALITY), `live-camera-${Date.now()}.jpg`, 'Live camera capture');
       document.getElementById('clockInPhotoInput').value = '';
       document.getElementById('clockInModalStatus').textContent = 'Live photo captured successfully. Confirm clock-in when ready.';
     }
