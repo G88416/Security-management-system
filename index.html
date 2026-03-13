@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SecureGuard • Management System (2026 Prototype)</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
   <style>
     :root {
       --bg: #f8fafc;
@@ -94,6 +95,13 @@
     }
 
     .grid-2 { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      justify-content: space-between;
+    }
 
     .form-group { margin-bottom: 1rem; }
     .form-group label { display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem; }
@@ -118,6 +126,7 @@
 
     button.btn-danger { background: var(--danger); }
     button.btn-success { background: var(--success); }
+    button.btn-small { padding: 0.45rem 0.8rem; font-size: 0.8rem; }
 
     .status {
       display: inline-block;
@@ -130,34 +139,168 @@
     .status-on { background: #d1fae5; color: #065f46; }
     .status-patrol { background: #dbeafe; color: #1e40af; }
     .status-off { background: #fee2e2; color: #991b1b; }
+    .status-open { background: #fef3c7; color: #92400e; }
+    .status-investigating { background: #dbeafe; color: #1d4ed8; }
+    .status-escalated { background: #fee2e2; color: #b91c1c; }
+    .status-resolved { background: #d1fae5; color: #047857; }
 
-    .shift-grid {
+    .guard-list, .incident-list {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 4px;
-      text-align: center;
-      font-size: 0.85rem;
+      gap: 0.85rem;
     }
 
-    .shift-day {
+    .guard-card {
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .guard-card.active {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .meta-list {
+      display: grid;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      font-size: 0.92rem;
+      color: var(--text-light);
+    }
+
+    .meta-list strong { color: var(--text); }
+
+    .tag-row, .workflow-track {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.85rem;
+    }
+
+    .tag, .workflow-step {
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
       background: var(--muted);
       border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      padding: 0.8rem 0.4rem;
-      min-height: 90px;
-      cursor: move;
+      font-size: 0.8rem;
     }
 
-    .shift-day.today { background: #dbeafe; border-color: var(--primary); }
+    .workflow-step.complete {
+      background: rgba(59, 130, 246, 0.12);
+      border-color: rgba(59, 130, 246, 0.4);
+      color: var(--primary-dark);
+    }
 
-    .shift-item {
+    .workflow-step.current {
       background: var(--primary);
       color: white;
-      padding: 0.4rem;
-      margin: 4px 0;
-      border-radius: 0.4rem;
-      font-size: 0.8rem;
-      cursor: move;
+      border-color: var(--primary);
+    }
+
+    .inline-feedback {
+      font-size: 0.85rem;
+      color: var(--text-light);
+    }
+
+    .document-list {
+      display: grid;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .document-item, .incident-item {
+      border: 1px solid var(--border);
+      border-radius: 0.65rem;
+      padding: 0.85rem;
+      background: var(--bg);
+    }
+
+    .document-item small,
+    .incident-item small {
+      display: block;
+      margin-top: 0.3rem;
+      color: var(--text-light);
+    }
+
+    .upload-panel {
+      margin-top: 1rem;
+      padding: 1rem;
+      border: 1px dashed var(--border);
+      border-radius: 0.75rem;
+      background: var(--bg);
+    }
+
+    .calendar-shell {
+      margin-top: 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      background: var(--card);
+    }
+
+    .fallback-calendar {
+      display: grid;
+      gap: 0.85rem;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .fallback-day {
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 0.9rem;
+      background: var(--bg);
+    }
+
+    .fallback-day h4 {
+      margin-bottom: 0.75rem;
+    }
+
+    .fallback-event {
+      border-left: 4px solid var(--primary);
+      padding-left: 0.6rem;
+      margin-bottom: 0.7rem;
+    }
+
+    .fc {
+      --fc-border-color: var(--border);
+      --fc-page-bg-color: var(--card);
+      --fc-neutral-bg-color: var(--muted);
+      --fc-list-event-hover-bg-color: var(--muted);
+      --fc-today-bg-color: rgba(59, 130, 246, 0.12);
+    }
+
+    .fc .fc-toolbar-title,
+    .fc .fc-col-header-cell-cushion,
+    .fc .fc-daygrid-day-number,
+    .fc .fc-list-day-text,
+    .fc .fc-list-day-side-text {
+      color: var(--text);
+    }
+
+    .fc .fc-button-primary {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .fc .fc-button-primary:hover,
+    .fc .fc-button-primary:not(:disabled).fc-button-active,
+    .fc .fc-button-primary:not(:disabled):active {
+      background: var(--primary-dark);
+      border-color: var(--primary-dark);
+    }
+
+    .fc .fc-timegrid-slot-label-cushion,
+    .fc .fc-timegrid-axis-cushion,
+    .fc .fc-list-event-time,
+    .fc .fc-list-event-title {
+      color: var(--text-light);
+    }
+
+    .profile-panel h3,
+    .incident-item h3 {
+      margin-bottom: 0.35rem;
     }
 
     footer {
@@ -169,6 +312,9 @@
 
     @media (max-width: 640px) {
       nav.tabs { justify-content: center; }
+      .fc .fc-toolbar {
+        align-items: flex-start;
+      }
     }
   </style>
 </head>
@@ -193,24 +339,39 @@
   <div id="guards" class="section active">
     <div class="card">
       <h2 style="margin-bottom:1rem;">Employee / Guard Management</h2>
-      <button class="btn">+ Add New Guard</button>
+      <div class="action-row">
+        <button class="btn">+ Add New Guard</button>
+        <span class="inline-feedback">Select a guard to review compliance, contact details, and uploaded documents.</span>
+      </div>
 
-      <div class="grid-2" style="margin-top:1.2rem;">
-        <div class="card">
-          <strong>Thabo Mokoena</strong><br>
-          ID: SG-042 • Pay: R28/hr<br>
-          Certifications: PSIRA Gr A (expires 2027-06)<br>
-          <span class="status status-on">On Duty – Sandton</span>
+      <div class="grid-2" style="margin-top:1.2rem; align-items:start;">
+        <div>
+          <h3 style="margin-bottom:0.8rem;">Active guard directory</h3>
+          <div id="guardDirectory" class="guard-list"></div>
         </div>
-        <div class="card">
-          <strong>Nokuthula Zulu</strong><br>
-          ID: SG-119 • Skills: First Aid, CCTV<br>
-          <span class="status status-patrol">Patrolling – Midrand</span>
-        </div>
-        <div class="card">
-          <strong>John Lesedi</strong><br>
-          ID: SG-087<br>
-          <span class="status status-off">Off</span>
+        <div class="card profile-panel">
+          <div id="guardProfile"></div>
+          <div class="upload-panel">
+            <h3 style="margin-bottom:0.75rem;">Document upload simulation</h3>
+            <div class="form-group">
+              <label for="documentType">Document type</label>
+              <select id="documentType">
+                <option>PSIRA Certificate</option>
+                <option>ID Copy</option>
+                <option>First Aid Certificate</option>
+                <option>Training Record</option>
+                <option>Uniform Checklist</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="guardDocumentInput">Choose file</label>
+              <input id="guardDocumentInput" type="file" accept=".pdf,image/*">
+            </div>
+            <div class="action-row">
+              <button id="simulateUploadBtn" type="button" class="btn btn-success">Simulate Upload</button>
+              <span id="documentUploadStatus" class="inline-feedback">No upload simulated yet.</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -220,36 +381,17 @@
   <div id="scheduling" class="section">
     <div class="card">
       <h2>Scheduling & Rostering</h2>
-      <p>Must-have: Drag-and-drop calendar, shift swaps, overtime alerts</p>
+      <p>Full weekly scheduling with drag-and-drop shifts, publishing actions, and quick roster updates.</p>
 
-      <div style="margin:1.5rem 0;">
-        <button class="btn">Auto-schedule (placeholder)</button>
-        <button class="btn" style="margin-left:0.6rem;">Publish Roster</button>
+      <div class="action-row" style="margin:1.5rem 0 0.75rem;">
+        <div>
+          <button id="autoScheduleBtn" class="btn">Auto-schedule Relief Shift</button>
+          <button id="publishRosterBtn" class="btn" style="margin-left:0.6rem;">Publish Roster</button>
+        </div>
+        <span id="scheduleFeedback" class="inline-feedback">Week view opens when you switch to Scheduling.</span>
       </div>
 
-      <div class="shift-grid">
-        <div class="shift-day">Mon</div>
-        <div class="shift-day">Tue</div>
-        <div class="shift-day">Wed</div>
-        <div class="shift-day today">Thu <small>(Today)</small></div>
-        <div class="shift-day">Fri</div>
-        <div class="shift-day">Sat</div>
-        <div class="shift-day">Sun</div>
-
-        <div class="shift-day">
-          <div class="shift-item" draggable="true">18:00–06:00 Thabo</div>
-        </div>
-        <div class="shift-day">
-          <div class="shift-item" draggable="true">14:00–22:00 Noku</div>
-        </div>
-        <div class="shift-day"></div>
-        <div class="shift-day">
-          <div class="shift-item" draggable="true">06:00–18:00 John</div>
-        </div>
-        <div class="shift-day"></div>
-        <div class="shift-day"></div>
-        <div class="shift-day"></div>
-      </div>
+      <div id="fullCalendar" class="calendar-shell"></div>
     </div>
   </div>
 
@@ -287,11 +429,11 @@
   <div id="incidents" class="section">
     <div class="card">
       <h2>Incident & Activity Reporting</h2>
-      <p>Must-have: Mobile forms, photos, severity, follow-up</p>
+      <p>Capture incidents quickly, attach evidence, and move every case through a clear response workflow.</p>
 
-      <form class="form-group" style="margin-top:1rem;">
+      <form id="incidentForm" class="form-group" style="margin-top:1rem;">
         <label>Incident Type</label>
-        <select>
+        <select id="incidentType">
           <option>Unauthorized Access</option>
           <option>Suspicious Activity</option>
           <option>Medical Emergency</option>
@@ -300,24 +442,39 @@
         </select>
 
         <label style="margin-top:1rem;">Severity</label>
-        <select>
+        <select id="incidentSeverity">
           <option>Low</option>
           <option>Medium</option>
           <option>High</option>
           <option>Critical</option>
         </select>
 
-        <label style="margin-top:1rem;">Description</label>
-        <textarea rows="4" placeholder="Details, location, witnesses..."></textarea>
+        <label style="margin-top:1rem;">Location</label>
+        <input id="incidentLocation" type="text" placeholder="e.g. Gate B, Sandton Mall" required>
 
-        <div style="margin-top:1rem;">
-          <button type="button" class="btn">+ Attach Photo/Video</button>
-          <button type="button" class="btn btn-success" style="margin-left:0.6rem;">Submit Incident</button>
+        <label style="margin-top:1rem;">Reported By</label>
+        <input id="incidentReporter" type="text" placeholder="Officer or supervisor name" required>
+
+        <label style="margin-top:1rem;">Description</label>
+        <textarea id="incidentDescription" rows="4" placeholder="Details, location, witnesses..." required></textarea>
+
+        <input id="incidentAttachment" type="file" accept="image/*,video/*" style="display:none;">
+
+        <div class="action-row" style="margin-top:1rem;">
+          <div>
+            <button id="incidentAttachBtn" type="button" class="btn">+ Attach Photo/Video</button>
+            <button type="submit" class="btn btn-success" style="margin-left:0.6rem;">Submit Incident</button>
+          </div>
+          <span id="incidentAttachmentStatus" class="inline-feedback">No attachment selected.</span>
         </div>
       </form>
 
       <div style="margin-top:1.5rem;">
-        <strong>Recent:</strong> Unauthorized tailgating – Gate B (High) – 11:42
+        <div class="action-row">
+          <strong>Live incident queue</strong>
+          <span id="incidentSummary" class="inline-feedback">Track open, escalated, and resolved issues in one place.</span>
+        </div>
+        <div id="incidentList" class="incident-list" style="margin-top:1rem;"></div>
       </div>
     </div>
   </div>
@@ -349,47 +506,470 @@
     SecureGuard Management System • Prototype • Johannesburg • March 2026
   </footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
   <script>
-    // Tab switching
+    const guardData = [
+      {
+        id: 'SG-042',
+        name: 'Thabo Mokoena',
+        pay: 'R28/hr',
+        certifications: 'PSIRA Gr A',
+        certificationExpiry: '2027-06',
+        status: 'On Duty',
+        statusClass: 'status-on',
+        site: 'Sandton Command Centre',
+        shift: '18:00–06:00 Night Shift',
+        contact: 'thabo.m@secureguard.co.za • 082 441 8821',
+        skills: ['Crowd control', 'Access control', 'Incident lead'],
+        documents: [
+          { type: 'PSIRA Certificate', fileName: 'psira-grade-a-2027.pdf', state: 'Verified', uploadedAt: '18 Feb 2026' },
+          { type: 'ID Copy', fileName: 'thabo-id-front.jpg', state: 'Verified', uploadedAt: '03 Jan 2026' }
+        ]
+      },
+      {
+        id: 'SG-119',
+        name: 'Nokuthula Zulu',
+        pay: 'R31/hr',
+        certifications: 'First Aid, CCTV',
+        certificationExpiry: '2026-12',
+        status: 'Patrolling',
+        statusClass: 'status-patrol',
+        site: 'Midrand Logistics Park',
+        shift: '14:00–22:00 Swing Shift',
+        contact: 'nokuthula.z@secureguard.co.za • 083 120 5530',
+        skills: ['First aid', 'CCTV monitoring', 'Visitor management'],
+        documents: [
+          { type: 'First Aid Certificate', fileName: 'first-aid-level-2.pdf', state: 'Verified', uploadedAt: '29 Jan 2026' },
+          { type: 'Training Record', fileName: 'cctv-training-log.pdf', state: 'Pending review', uploadedAt: '11 Mar 2026' }
+        ]
+      },
+      {
+        id: 'SG-087',
+        name: 'John Lesedi',
+        pay: 'R26/hr',
+        certifications: 'Armed response',
+        certificationExpiry: '2026-09',
+        status: 'Off Duty',
+        statusClass: 'status-off',
+        site: 'Relief Pool',
+        shift: 'Next shift: Fri 06:00–18:00',
+        contact: 'john.l@secureguard.co.za • 081 614 2204',
+        skills: ['Perimeter patrols', 'Vehicle inspections'],
+        documents: [
+          { type: 'Uniform Checklist', fileName: 'uniform-inspection-mar2026.pdf', state: 'Verified', uploadedAt: '06 Mar 2026' }
+        ]
+      }
+    ];
+
+    const incidentWorkflow = ['Open', 'Investigating', 'Escalated', 'Resolved'];
+    const incidentData = [
+      {
+        id: 'INC-2401',
+        type: 'Unauthorized Access',
+        severity: 'High',
+        location: 'Gate B, Sandton Mall',
+        reporter: 'Thabo Mokoena',
+        description: 'Attempted tailgating stopped at the turnstile. Visitor redirected to reception for screening.',
+        attachment: 'gate-b-tailgating.jpg',
+        status: 'Investigating',
+        time: '11:42'
+      },
+      {
+        id: 'INC-2402',
+        type: 'Equipment Failure',
+        severity: 'Medium',
+        location: 'Midrand Logistics Park',
+        reporter: 'Nokuthula Zulu',
+        description: 'Camera 14 intermittently loses power. Escalated to facilities while mobile patrol covers the blind spot.',
+        attachment: 'camera-14-report.mp4',
+        status: 'Escalated',
+        time: '09:18'
+      },
+      {
+        id: 'INC-2403',
+        type: 'Medical Emergency',
+        severity: 'Critical',
+        location: 'Loading Bay 3',
+        reporter: 'Control Room',
+        description: 'Contractor slipped on ramp, first aid delivered, ambulance dispatched, scene secured.',
+        attachment: 'medical-scene-photo.png',
+        status: 'Resolved',
+        time: '07:55'
+      }
+    ];
+
+    let selectedGuardId = guardData[0].id;
+    let calendar;
+    let calendarInitialized = false;
+    let usingCalendarFallback = false;
+    let scheduleEvents = buildCalendarEvents();
+
+    function getIncidentStatusClass(status) {
+      return {
+        Open: 'status-open',
+        Investigating: 'status-investigating',
+        Escalated: 'status-escalated',
+        Resolved: 'status-resolved'
+      }[status];
+    }
+
+    function getSeverityClass(severity) {
+      return {
+        Low: 'status-resolved',
+        Medium: 'status-patrol',
+        High: 'status-open',
+        Critical: 'status-escalated'
+      }[severity];
+    }
+
+    function renderGuardDirectory() {
+      const directory = document.getElementById('guardDirectory');
+      directory.innerHTML = guardData.map(guard => `
+        <button type="button" class="card guard-card ${guard.id === selectedGuardId ? 'active' : ''}" data-guard-id="${guard.id}">
+          <strong>${guard.name}</strong><br>
+          ${guard.id} • ${guard.pay}<br>
+          Certifications: ${guard.certifications} (expires ${guard.certificationExpiry})<br>
+          <span class="status ${guard.statusClass}">${guard.status} – ${guard.site}</span>
+        </button>
+      `).join('');
+
+      directory.querySelectorAll('[data-guard-id]').forEach(card => {
+        card.addEventListener('click', () => {
+          selectedGuardId = card.dataset.guardId;
+          renderGuardDirectory();
+          renderGuardProfile();
+        });
+      });
+    }
+
+    function renderGuardProfile() {
+      const guard = guardData.find(entry => entry.id === selectedGuardId);
+      const verifiedDocuments = guard.documents.filter(document => document.state === 'Verified').length;
+      const profile = document.getElementById('guardProfile');
+
+      profile.innerHTML = `
+        <div class="action-row">
+          <div>
+            <h3>${guard.name}</h3>
+            <div class="inline-feedback">${guard.id} • ${guard.pay}</div>
+          </div>
+          <span class="status ${guard.statusClass}">${guard.status}</span>
+        </div>
+        <div class="meta-list">
+          <div><strong>Primary site:</strong> ${guard.site}</div>
+          <div><strong>Current / next shift:</strong> ${guard.shift}</div>
+          <div><strong>Contact:</strong> ${guard.contact}</div>
+          <div><strong>Compliance:</strong> ${verifiedDocuments}/${guard.documents.length} documents verified</div>
+        </div>
+        <div class="tag-row">
+          ${guard.skills.map(skill => `<span class="tag">${skill}</span>`).join('')}
+        </div>
+        <div class="document-list">
+          ${guard.documents.map(document => `
+            <div class="document-item">
+              <strong>${document.type}</strong>
+              <span class="status ${document.state === 'Verified' ? 'status-resolved' : 'status-open'}" style="margin-left:0.5rem;">${document.state}</span>
+              <small>${document.fileName} • uploaded ${document.uploadedAt}</small>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function renderIncidentSummary() {
+      const openCount = incidentData.filter(incident => incident.status !== 'Resolved').length;
+      const escalatedCount = incidentData.filter(incident => incident.status === 'Escalated').length;
+      document.getElementById('incidentSummary').textContent = `${openCount} active incident(s) • ${escalatedCount} escalated for follow-up`;
+    }
+
+    function updateIncidentStatus(incidentId, direction) {
+      const incident = incidentData.find(entry => entry.id === incidentId);
+      const currentIndex = incidentWorkflow.indexOf(incident.status);
+      const nextIndex = currentIndex + direction;
+
+      if (nextIndex >= 0 && nextIndex < incidentWorkflow.length) {
+        incident.status = incidentWorkflow[nextIndex];
+        renderIncidentList();
+      }
+    }
+
+    function renderIncidentList() {
+      const incidentList = document.getElementById('incidentList');
+      incidentList.innerHTML = incidentData.map(incident => {
+        const currentStageIndex = incidentWorkflow.indexOf(incident.status);
+
+        return `
+          <div class="incident-item">
+            <div class="action-row">
+              <div>
+                <h3>${incident.id} • ${incident.type}</h3>
+                <small>${incident.time} • ${incident.location} • Reported by ${incident.reporter}</small>
+              </div>
+              <div>
+                <span class="status ${getIncidentStatusClass(incident.status)}">${incident.status}</span>
+                <span class="status ${getSeverityClass(incident.severity)}" style="margin-left:0.4rem;">${incident.severity}</span>
+              </div>
+            </div>
+            <p style="margin-top:0.85rem;">${incident.description}</p>
+            <small>Attachment: ${incident.attachment || 'No media attached'}</small>
+            <div class="workflow-track">
+              ${incidentWorkflow.map((step, index) => `
+                <span class="workflow-step ${index < currentStageIndex ? 'complete' : ''} ${step === incident.status ? 'current' : ''}">${step}</span>
+              `).join('')}
+            </div>
+            <div class="action-row" style="margin-top:0.9rem;">
+              <button type="button" class="btn btn-small incident-back" data-incident-id="${incident.id}" ${currentStageIndex === 0 ? 'disabled' : ''}>Move Back</button>
+              <button type="button" class="btn btn-small btn-success incident-next" data-incident-id="${incident.id}" ${currentStageIndex === incidentWorkflow.length - 1 ? 'disabled' : ''}>Advance Status</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      incidentList.querySelectorAll('.incident-back').forEach(button => {
+        button.addEventListener('click', () => updateIncidentStatus(button.dataset.incidentId, -1));
+      });
+
+      incidentList.querySelectorAll('.incident-next').forEach(button => {
+        button.addEventListener('click', () => updateIncidentStatus(button.dataset.incidentId, 1));
+      });
+
+      renderIncidentSummary();
+    }
+
+    function getStartOfWeek(referenceDate) {
+      const date = new Date(referenceDate);
+      const offset = (date.getDay() + 6) % 7;
+      date.setDate(date.getDate() - offset);
+      date.setHours(0, 0, 0, 0);
+      return date;
+    }
+
+    function atWeekTime(weekStart, dayOffset, hour, minute) {
+      const date = new Date(weekStart);
+      date.setDate(date.getDate() + dayOffset);
+      date.setHours(hour, minute, 0, 0);
+      return date;
+    }
+
+    function buildCalendarEvents() {
+      const weekStart = getStartOfWeek(new Date());
+      return [
+        {
+          title: 'Thabo • Sandton Night',
+          start: atWeekTime(weekStart, 0, 18, 0),
+          end: atWeekTime(weekStart, 1, 6, 0)
+        },
+        {
+          title: 'Nokuthula • Midrand Swing',
+          start: atWeekTime(weekStart, 1, 14, 0),
+          end: atWeekTime(weekStart, 1, 22, 0)
+        },
+        {
+          title: 'John • Relief Coverage',
+          start: atWeekTime(weekStart, 3, 6, 0),
+          end: atWeekTime(weekStart, 3, 18, 0)
+        },
+        {
+          title: 'Control Room Handover',
+          start: atWeekTime(weekStart, 4, 8, 0),
+          end: atWeekTime(weekStart, 4, 10, 0),
+          color: '#10b981'
+        }
+      ];
+    }
+
+    function formatRosterTime(date) {
+      return new Date(date).toLocaleString('en-ZA', {
+        weekday: 'short',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function renderCalendarFallback() {
+      const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      const fallbackMarkup = weekDays.map((dayName, index) => {
+        const dayEvents = scheduleEvents.filter(event => new Date(event.start).getDay() === ((index + 1) % 7));
+        return `
+          <div class="fallback-day">
+            <h4>${dayName}</h4>
+            ${dayEvents.length ? dayEvents.map(event => `
+              <div class="fallback-event">
+                <strong>${event.title}</strong>
+                <small>${formatRosterTime(event.start)} – ${formatRosterTime(event.end)}</small>
+              </div>
+            `).join('') : '<small>No shifts planned.</small>'}
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('fullCalendar').innerHTML = `
+        <div class="inline-feedback" style="margin-bottom:0.9rem;">FullCalendar CDN is unavailable in this environment, so a read-only fallback roster is shown.</div>
+        <div class="fallback-calendar">${fallbackMarkup}</div>
+      `;
+    }
+
+    function ensureCalendar() {
+      if (calendarInitialized) {
+        calendar.updateSize();
+        return;
+      }
+
+      if (usingCalendarFallback) {
+        renderCalendarFallback();
+        return;
+      }
+
+      if (!window.FullCalendar) {
+        usingCalendarFallback = true;
+        renderCalendarFallback();
+        document.getElementById('scheduleFeedback').textContent = 'FullCalendar CDN unavailable here; fallback roster snapshot loaded.';
+        return;
+      }
+
+      calendar = new FullCalendar.Calendar(document.getElementById('fullCalendar'), {
+        initialView: 'timeGridWeek',
+        initialDate: new Date(),
+        firstDay: 1,
+        nowIndicator: true,
+        editable: true,
+        selectable: true,
+        height: 'auto',
+        eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,listWeek'
+        },
+        events: scheduleEvents,
+        eventDrop(info) {
+          document.getElementById('scheduleFeedback').textContent = `${info.event.title} moved to ${info.event.start.toLocaleString('en-ZA')}.`;
+        },
+        select(info) {
+          const newEvent = {
+            title: 'Open Shift • Relief Officer',
+            start: info.start,
+            end: info.end
+          };
+          scheduleEvents.push(newEvent);
+          calendar.addEvent(newEvent);
+          document.getElementById('scheduleFeedback').textContent = 'Open shift added to the roster for assignment.';
+        }
+      });
+
+      calendar.render();
+      calendarInitialized = true;
+      document.getElementById('scheduleFeedback').textContent = 'FullCalendar week view loaded with editable shift events.';
+    }
+
     document.querySelectorAll('nav.tabs button').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('nav.tabs button').forEach(button => button.classList.remove('active'));
         btn.classList.add('active');
 
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
         document.getElementById(btn.dataset.tab).classList.add('active');
+
+        if (btn.dataset.tab === 'scheduling') {
+          ensureCalendar();
+        }
       });
     });
 
-    // Dark mode
     document.getElementById('themeToggle').addEventListener('click', () => {
       const html = document.documentElement;
       const isDark = html.getAttribute('data-theme') === 'dark';
       html.setAttribute('data-theme', isDark ? '' : 'dark');
       document.getElementById('themeToggle').textContent = isDark ? 'Dark Mode' : 'Light Mode';
+
+      if (calendar) {
+        window.setTimeout(() => calendar.updateSize(), 50);
+      }
     });
 
-    // Very basic drag simulation (for demo only)
-    document.querySelectorAll('.shift-item').forEach(item => {
-      item.addEventListener('dragstart', e => {
-        e.dataTransfer.setData('text/plain', item.textContent);
+    document.getElementById('simulateUploadBtn').addEventListener('click', () => {
+      const selectedGuard = guardData.find(entry => entry.id === selectedGuardId);
+      const documentType = document.getElementById('documentType').value;
+      const fileInput = document.getElementById('guardDocumentInput');
+      const fileName = fileInput.files[0]?.name || `${documentType.toLowerCase().replace(/\s+/g, '-')}-scan.pdf`;
+
+      selectedGuard.documents.unshift({
+        type: documentType,
+        fileName,
+        state: 'Pending review',
+        uploadedAt: new Date().toLocaleString('en-ZA', { dateStyle: 'medium', timeStyle: 'short' })
       });
+
+      fileInput.value = '';
+      document.getElementById('documentUploadStatus').textContent = `${documentType} added to ${selectedGuard.name}'s profile for verification.`;
+      renderGuardDirectory();
+      renderGuardProfile();
     });
 
-    document.querySelectorAll('.shift-day').forEach(day => {
-      day.addEventListener('dragover', e => e.preventDefault());
-      day.addEventListener('drop', e => {
-        e.preventDefault();
-        const data = e.dataTransfer.getData('text/plain');
-        if (data) {
-          const newShift = document.createElement('div');
-          newShift.className = 'shift-item';
-          newShift.draggable = true;
-          newShift.textContent = data;
-          day.appendChild(newShift);
+    document.getElementById('incidentAttachBtn').addEventListener('click', () => {
+      document.getElementById('incidentAttachment').click();
+    });
+
+    document.getElementById('incidentAttachment').addEventListener('change', event => {
+      const fileName = event.target.files[0]?.name || 'No attachment selected.';
+      document.getElementById('incidentAttachmentStatus').textContent = fileName;
+    });
+
+    document.getElementById('incidentForm').addEventListener('submit', event => {
+      event.preventDefault();
+
+      const attachmentInput = document.getElementById('incidentAttachment');
+      incidentData.unshift({
+        id: `INC-${String(2400 + incidentData.length + 1).padStart(4, '0')}`,
+        type: document.getElementById('incidentType').value,
+        severity: document.getElementById('incidentSeverity').value,
+        location: document.getElementById('incidentLocation').value,
+        reporter: document.getElementById('incidentReporter').value,
+        description: document.getElementById('incidentDescription').value,
+        attachment: attachmentInput.files[0]?.name || 'No media attached',
+        status: 'Open',
+        time: new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })
+      });
+
+      event.target.reset();
+      attachmentInput.value = '';
+      document.getElementById('incidentAttachmentStatus').textContent = 'No attachment selected.';
+      renderIncidentList();
+    });
+
+    document.getElementById('autoScheduleBtn').addEventListener('click', () => {
+      ensureCalendar();
+
+      if (!scheduleEvents.some(event => event.title === 'Relief Patrol • Menlyn')) {
+        const weekStart = getStartOfWeek(new Date());
+        const reliefShift = {
+          title: 'Relief Patrol • Menlyn',
+          start: atWeekTime(weekStart, 2, 10, 0),
+          end: atWeekTime(weekStart, 2, 18, 0),
+          color: '#f59e0b'
+        };
+        scheduleEvents.push(reliefShift);
+
+        if (calendar) {
+          calendar.addEvent(reliefShift);
         }
-      });
+      }
+
+      if (usingCalendarFallback) {
+        renderCalendarFallback();
+      }
+
+      document.getElementById('scheduleFeedback').textContent = 'Auto-schedule simulated: Menlyn relief shift added to the roster.';
     });
+
+    document.getElementById('publishRosterBtn').addEventListener('click', () => {
+      ensureCalendar();
+      document.getElementById('scheduleFeedback').textContent = `Roster published with ${calendar ? calendar.getEvents().length : scheduleEvents.length} scheduled shift(s).`;
+    });
+
+    renderGuardDirectory();
+    renderGuardProfile();
+    renderIncidentList();
   </script>
 
 </body>
