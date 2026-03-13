@@ -762,6 +762,7 @@
       { title: 'Retail Support • Rosebank', dayOffset: 4, startHour: 12, endHour: 20, color: '#8b5cf6' },
       { title: 'Night Relief • Midrand', dayOffset: 5, startHour: 18, endHour: 23, color: '#10b981' }
     ];
+    const defaultPatrolProgress = { active: false, currentCheckpoint: 0, totalCheckpoints: 8, site: 'Sandton Mall' };
 
     let guardData = [
       {
@@ -863,7 +864,7 @@
     let panicAlertActive = false;
     let reportGenerated = false;
     let attendanceSessions = {};
-    let patrolProgress = { active: false, currentCheckpoint: 0, totalCheckpoints: 8, site: 'Sandton Mall' };
+    let patrolProgress = { ...defaultPatrolProgress };
     let activityFeed = [];
     let firebaseDb = null;
     let firebaseSyncEnabled = false;
@@ -918,6 +919,19 @@
       }[severity];
     }
 
+    function formatCurrentTime() {
+      return new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function generateIncidentId() {
+      const maxIncidentNumber = incidentData.reduce((highestNumber, incident) => {
+        const incidentNumber = Number(String(incident.id || '').replace(/[^\d]/g, ''));
+        return Number.isFinite(incidentNumber) ? Math.max(highestNumber, incidentNumber) : highestNumber;
+      }, 2400);
+
+      return `INC-${String(maxIncidentNumber + 1).padStart(4, '0')}`;
+    }
+
     function formatActivityTime(timestamp) {
       return new Date(timestamp).toLocaleString('en-ZA', {
         month: 'short',
@@ -929,6 +943,14 @@
 
     function buildAttendanceLabel(guard) {
       return `${guard.name} – ${guard.site}`;
+    }
+
+    function cloneGuard(guard) {
+      return {
+        ...guard,
+        skills: [...guard.skills],
+        documents: guard.documents.map(document => ({ ...document }))
+      };
     }
 
     function getSelectedGuard() {
@@ -975,7 +997,7 @@
       const onDutyCount = guardData.filter(guard => ['On Duty', 'Patrolling'].includes(guard.status)).length;
       const activeIncidentCount = incidentData.filter(incident => incident.status !== 'Resolved').length;
       const escalatedIncidentCount = incidentData.filter(incident => incident.status === 'Escalated').length;
-      const pendingDocumentCount = guardData.reduce((total, guard) => total + guard.documents.filter(document => document.state !== 'Verified').length, 0);
+      const pendingDocumentCount = guardData.reduce((total, guard) => total + guard.documents.reduce((count, document) => count + (document.state !== 'Verified' ? 1 : 0), 0), 0);
       const scheduledShiftCount = calendar ? calendar.getEvents().length : scheduleEvents.length;
 
       document.getElementById('reportPreview').innerHTML = [
@@ -1030,6 +1052,11 @@
       const verifiedDocuments = guard.documents.filter(document => document.state === 'Verified').length;
       const missingDocuments = requiredDocumentTypes.filter(type => !guard.documents.some(document => document.type === type));
       const attendanceRecord = attendanceSessions[guard.id];
+      const attendanceLabel = attendanceRecord?.clockedIn
+        ? `Clocked in at ${escapeHtml(attendanceRecord.clockInTime || attendanceRecord.lastActionTime || 'Unknown time')}`
+        : attendanceRecord?.clockOutTime
+          ? `Last clock-out at ${escapeHtml(attendanceRecord.clockOutTime)}`
+          : 'Awaiting next clock-in';
       const profile = document.getElementById('guardProfile');
 
       profile.innerHTML = `
@@ -1045,7 +1072,7 @@
           <div><strong>Current / next shift:</strong> ${escapeHtml(guard.shift)}</div>
           <div><strong>Contact:</strong> ${escapeHtml(guard.contact)}</div>
           <div><strong>Compliance:</strong> ${verifiedDocuments}/${guard.documents.length} documents verified</div>
-          <div><strong>Attendance:</strong> ${escapeHtml(attendanceRecord?.clockedIn ? `Clocked in at ${attendanceRecord.time}` : 'Awaiting next clock-in')}</div>
+          <div><strong>Attendance:</strong> ${attendanceLabel}</div>
           <div><strong>Missing docs:</strong> ${escapeHtml(missingDocuments.length ? missingDocuments.join(', ') : 'Core documents complete')}</div>
         </div>
         <div class="tag-row">
@@ -1182,8 +1209,8 @@
       reportGenerated = Boolean(state.reportGenerated);
       attendanceSessions = state.attendanceSessions && typeof state.attendanceSessions === 'object' ? state.attendanceSessions : {};
       patrolProgress = state.patrolProgress && typeof state.patrolProgress === 'object'
-        ? { active: false, currentCheckpoint: 0, totalCheckpoints: 8, site: 'Sandton Mall', ...state.patrolProgress }
-        : patrolProgress;
+        ? { ...defaultPatrolProgress, ...state.patrolProgress }
+        : { ...defaultPatrolProgress };
       activityFeed = Array.isArray(state.activityFeed) ? state.activityFeed : activityFeed;
 
       if (!guardData.some(guard => guard.id === selectedGuardId)) {
@@ -1224,7 +1251,7 @@
 
       if (firebaseSyncEnabled && firebaseDb) {
         firebaseDb.collection(firebaseCollectionName).doc(firebaseDocumentName).set(state).then(() => {
-          setFirebaseStatus('Firebase sync active. Latest dashboard changes saved to Firestore.');
+          setFirebaseStatus(`Firebase sync active. Latest dashboard changes saved to Firestore at ${formatCurrentTime()}.`);
         }).catch(error => {
           setFirebaseStatus(`Firebase sync warning: ${error.message}`);
         });
@@ -1505,7 +1532,7 @@
 
       if (existingDocument) {
         existingDocument.fileName = fileName;
-        existingDocument.state = 'Verified';
+        existingDocument.state = 'Pending review';
         existingDocument.uploadedAt = new Date().toLocaleString('en-ZA', { dateStyle: 'medium', timeStyle: 'short' });
       } else {
         selectedGuard.documents.unshift({
@@ -1518,7 +1545,7 @@
 
       fileInput.value = '';
       document.getElementById('documentUploadStatus').textContent = existingDocument
-        ? `${documentType} refreshed and marked verified for ${selectedGuard.name}.`
+        ? `${documentType} refreshed for ${selectedGuard.name} and queued for review again.`
         : `${documentType} added to ${selectedGuard.name}'s profile for verification.`;
       addActivity('Compliance updated', `${documentType} uploaded for ${selectedGuard.name}.`);
       renderGuardDirectory();
@@ -1550,7 +1577,7 @@
       }
 
       incidentData.unshift({
-        id: `INC-${String(2400 + incidentData.length + 1).padStart(4, '0')}`,
+        id: generateIncidentId(),
         type: document.getElementById('incidentType').value,
         severity: document.getElementById('incidentSeverity').value,
         location,
@@ -1558,7 +1585,7 @@
         description,
         attachment: sanitizeFileName(attachmentInput.files[0]?.name, 'No media attached'),
         status: 'Open',
-        time: new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })
+        time: formatCurrentTime()
       });
 
       event.target.reset();
@@ -1626,7 +1653,7 @@
       const newGuard = nextCandidate || guardPipeline[guardPipeline.length - 1];
 
       if (nextCandidate) {
-        guardData.push({ ...newGuard, documents: newGuard.documents.map(document => ({ ...document })) });
+        guardData.push(cloneGuard(newGuard));
         const weekStart = getStartOfWeek(new Date());
         const onboardingEvent = {
           title: `${newGuard.name.split(' ')[0]} • Onboarding Briefing`,
@@ -1656,17 +1683,27 @@
       const selectedOfficer = document.getElementById('attendanceGuardSelect').value;
       const selectedGuard = guardData.find(guard => buildAttendanceLabel(guard) === selectedOfficer);
       const existingSession = selectedGuard ? attendanceSessions[selectedGuard.id] : null;
-      const nowLabel = new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
+      const nowLabel = formatCurrentTime();
 
       if (selectedGuard) {
         if (existingSession?.clockedIn) {
-          attendanceSessions[selectedGuard.id] = { clockedIn: false, time: nowLabel };
+          attendanceSessions[selectedGuard.id] = {
+            clockedIn: false,
+            clockInTime: existingSession.clockInTime || existingSession.lastActionTime || nowLabel,
+            clockOutTime: nowLabel,
+            lastActionTime: nowLabel
+          };
           selectedGuard.status = 'Off Duty';
           document.getElementById('attendanceStatus').textContent = `${selectedOfficer} clocked out successfully at ${nowLabel}.`;
           addActivity('Clock-out recorded', `${selectedGuard.name} clocked out at ${nowLabel}.`);
         } else {
-          attendanceSessions[selectedGuard.id] = { clockedIn: true, time: nowLabel };
-          selectedGuard.status = selectedGuard.status === 'Patrolling' ? 'Patrolling' : 'On Duty';
+          attendanceSessions[selectedGuard.id] = {
+            clockedIn: true,
+            clockInTime: nowLabel,
+            clockOutTime: '',
+            lastActionTime: nowLabel
+          };
+          selectedGuard.status = 'On Duty';
           document.getElementById('attendanceStatus').textContent = `${selectedOfficer} clocked in successfully with GPS and photo verification at ${nowLabel}.`;
           addActivity('Clock-in recorded', `${selectedGuard.name} clocked in at ${nowLabel}.`);
         }
@@ -1689,7 +1726,7 @@
 
       if (panicAlertActive) {
         incidentData.unshift({
-          id: `INC-${String(2400 + incidentData.length + 1).padStart(4, '0')}`,
+          id: generateIncidentId(),
           type: 'Medical Emergency',
           severity: 'Critical',
           location,
@@ -1697,7 +1734,7 @@
           description: 'Emergency panic signal triggered from the attendance console. Immediate supervisor response required.',
           attachment: 'Live GPS ping attached',
           status: 'Escalated',
-          time: new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })
+          time: formatCurrentTime()
         });
         addActivity('SOS triggered', `${selectedOfficer} sent a panic alert from ${location}.`);
       } else {
