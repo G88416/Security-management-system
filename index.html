@@ -1294,7 +1294,7 @@
   <div id="reports" class="section">
     <div class="card">
       <h2>Reporting & Analytics</h2>
-      <p>Dashboards, compliance reports, PDF/Word/Excel export, sharing, printing, and an advanced smart report generator that composes operational intelligence from every live module.</p>
+      <p>Dashboards, compliance reports, PDF export, Word/Excel-compatible downloads, sharing, printing, and an advanced smart report generator that composes operational intelligence from every live module.</p>
       <div class="action-row">
         <div class="toolbar-group">
           <select id="reportAudienceSelect" class="filter-select">
@@ -1941,6 +1941,10 @@
 
     function buildAttendanceLabel(guard) {
       return `${guard.name} – ${guard.site}`;
+    }
+
+    function getGuardNameById(guardId, fallback = guardId) {
+      return guardData.find(guard => guard.id === guardId)?.name || fallback;
     }
 
     function extractLocationKeywords(value) {
@@ -2677,7 +2681,7 @@
       const activePatrolRoute = getSelectedPatrolRoute();
       const routePlan = getPatrolPlan(activePatrolRoute);
       const coverageGaps = siteData.filter(site => String(site.coverageStatus || '').toLowerCase().includes('gap')).length;
-      const nextShift = scheduleEntries.find(event => event.start && event.start >= new Date()) || scheduleEntries[0] || null;
+      const nextScheduledShift = scheduleEntries.find(event => event.start && event.start >= new Date()) || scheduleEntries[0] || null;
       const latestActivity = activityFeed[0] || null;
       const riskIndex = Math.min(
         100,
@@ -2688,13 +2692,13 @@
       );
       const operationalHealth = Math.max(0, 100 - riskIndex);
       const filenameBase = sanitizeFileName(
-        `security-report-${focus.toLowerCase().replace(/[^a-z0-9]+/gi, '-')}-${generatedAt.slice(0, 10)}`,
+        `security-report-${focus.toLowerCase().replace(/[^A-Za-z0-9]+/g, '-')}-${generatedAt.slice(0, 10)}`,
         'security-report'
       );
       const metricCards = [
         { label: 'On duty now', value: `${onDutyGuards.length}/${guardData.length}`, note: 'Guards currently working or patrolling' },
         { label: 'Active incidents', value: String(activeIncidents.length), note: `${escalatedIncidents.length} escalated for follow-up` },
-        { label: 'Scheduled shifts', value: String(scheduleEntries.length), note: nextShift ? `Next shift ${formatReportDateTime(nextShift.start)}` : 'No future shifts scheduled yet' },
+        { label: 'Scheduled shifts', value: String(scheduleEntries.length), note: nextScheduledShift ? `Next shift ${formatReportDateTime(nextScheduledShift.start)}` : 'No future shifts scheduled yet' },
         { label: 'Pending documents', value: String(pendingDocumentCount), note: 'Compliance uploads still awaiting review' },
         { label: 'Leave queue', value: String(pendingLeaveRequests.length), note: 'Pending leave forms awaiting approval' },
         { label: 'Risk index', value: `${riskIndex}/100`, note: `Smart score tuned for ${focus}` },
@@ -2728,8 +2732,8 @@
           title: 'Scheduling & rostering',
           summary: `${scheduleEntries.length} scheduled shift(s) included in the roster snapshot.`,
           details: [
-            nextShift ? `Next planned shift: ${nextShift.title} on ${formatReportDateTime(nextShift.start)}.` : 'No scheduled shift is currently queued.',
-            nextShift?.siteName ? `Next shift site: ${nextShift.siteName}.` : 'Shift site details are pending.',
+            nextScheduledShift ? `Next planned shift: ${nextScheduledShift.title} on ${formatReportDateTime(nextScheduledShift.start)}.` : 'No scheduled shift is currently queued.',
+            nextScheduledShift?.siteName ? `Next shift site: ${nextScheduledShift.siteName}.` : 'Shift site details are pending.',
             `${pendingLeaveRequests.length} leave request(s) still need roster alignment.`
           ]
         },
@@ -2740,7 +2744,7 @@
             `${pendingLeaveRequests.length} leave request(s) remain pending approval.`,
             `${approvedLeaveRequests.length} leave request(s) are already approved.`,
             pendingLeaveRequests[0]
-              ? `Next pending leave: ${pendingLeaveRequests[0].guardId} from ${pendingLeaveRequests[0].startDate} to ${pendingLeaveRequests[0].endDate}.`
+              ? `Next pending leave: ${getGuardNameById(pendingLeaveRequests[0].guardId)} from ${pendingLeaveRequests[0].startDate} to ${pendingLeaveRequests[0].endDate}.`
               : 'No pending leave request is waiting in the queue.'
           ]
         },
@@ -2749,10 +2753,10 @@
           summary: `${clockedInEntries.length} guard(s) are currently clocked in across the attendance console.`,
           details: [
             latestAttendanceEntry
-              ? `Latest attendance update: ${(guardData.find(guard => guard.id === latestAttendanceEntry.guardId)?.name) || latestAttendanceEntry.guardId} at ${latestAttendanceEntry.timestamp}.`
+              ? `Latest attendance update: ${getGuardNameById(latestAttendanceEntry.guardId)} at ${latestAttendanceEntry.timestamp}.`
               : 'No attendance activity has been recorded yet.',
             clockedInEntries.length
-              ? `${clockedInEntries.map(([guardId]) => guardData.find(guard => guard.id === guardId)?.name || guardId).join(', ')} currently show live attendance.`
+              ? `${clockedInEntries.map(([guardId]) => getGuardNameById(guardId)).join(', ')} currently show live attendance.`
               : 'Attendance coverage will appear here after the first clock-in.',
             panicAlertActive ? 'An SOS panic alert is currently active and requires dispatch attention.' : 'No panic alerts are active.'
           ]
@@ -2818,7 +2822,7 @@
       const narrative = `${focus} ${isLocked ? 'report generated' : 'live preview refreshed'} on ${formatReportDateTime(generatedAt)} for ${audience}.\n\n` +
         `This snapshot combines every live module: portal access, guards, scheduling, leave, attendance, patrol, incidents, sites, and recent activity. ` +
         `Operational health is ${operationalHealth}% with ${onDutyGuards.length}/${guardData.length} guards active, ${activeIncidents.length} active incident(s), ${scheduleEntries.length} scheduled shift(s), and ${pendingDocumentCount} pending compliance upload(s).\n\n` +
-        `${nextShift ? `The next rostered shift is ${nextShift.title} on ${formatReportDateTime(nextShift.start)}. ` : 'There is no queued shift in the current roster. '}` +
+        `${nextScheduledShift ? `The next rostered shift is ${nextScheduledShift.title} on ${formatReportDateTime(nextScheduledShift.start)}. ` : 'There is no queued shift in the current roster. '}` +
         `${routePlan.nextCheckpoint ? `Patrol focus remains on ${routePlan.nextCheckpoint.name} at ${activePatrolRoute?.site || 'the active site'}. ` : 'Patrol teams have no pending smart checkpoint in the current route. '}` +
         `${latestActivity ? `The latest recorded activity is ${latestActivity.title.toLowerCase()} with detail: ${latestActivity.detail}.` : 'No recent activity has been recorded yet.'}`;
 
@@ -2919,7 +2923,7 @@
 </html>`;
     }
 
-    function buildExcelReportDocument(snapshot) {
+    function buildExcelCompatibleReportDocument(snapshot) {
       return `<!DOCTYPE html>
 <html lang="en" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
 <head>
@@ -2999,6 +3003,17 @@
     function renderReportPreview() {
       const snapshot = getActiveReportSnapshot();
       const buttonsEnabled = reportGenerated && Boolean(reportSnapshot);
+      const audienceSelect = document.getElementById('reportAudienceSelect');
+      const focusSelect = document.getElementById('reportFocusSelect');
+
+      if (buttonsEnabled) {
+        if (Array.from(audienceSelect.options).some(option => option.value === snapshot.audience)) {
+          audienceSelect.value = snapshot.audience;
+        }
+        if (Array.from(focusSelect.options).some(option => option.value === snapshot.focus)) {
+          focusSelect.value = snapshot.focus;
+        }
+      }
 
       document.getElementById('reportPreview').innerHTML = snapshot.metricCards.map(item => `
         <div class="metric-item">
@@ -3033,6 +3048,10 @@
           button.disabled = !buttonsEnabled;
         }
       });
+
+      document.getElementById('reportStatus').textContent = buttonsEnabled
+        ? `Smart ${snapshot.focus} report generated successfully for ${snapshot.audience}.`
+        : 'Generate a compliance snapshot for client reporting.';
 
       document.getElementById('reportActionStatus').textContent = buttonsEnabled
         ? `Report snapshot generated at ${formatReportDateTime(snapshot.generatedAt)}. Choose Save PDF, Word, Excel, Share Report, or Print.`
@@ -4396,10 +4415,11 @@
 
     document.getElementById('publishRosterBtn').addEventListener('click', () => {
       ensureCalendar();
-      reportGenerated = true;
       reportSnapshot = buildReportSnapshot(true);
+      reportGenerated = true;
       document.getElementById('scheduleFeedback').textContent = `Roster published with ${calendar ? calendar.getEvents().length : scheduleEvents.length} scheduled shift(s).`;
       document.getElementById('reportStatus').textContent = 'Roster publish summary pushed into the live compliance snapshot.';
+      document.getElementById('reportActionStatus').textContent = `Roster publish refreshed the generated snapshot at ${formatReportDateTime(reportSnapshot.generatedAt)}.`;
       addActivity('Roster published', `${calendar ? calendar.getEvents().length : scheduleEvents.length} shifts prepared for team distribution.`);
       renderReportPreview();
       saveDashboardState();
@@ -4656,8 +4676,8 @@
     });
 
     document.getElementById('generateReportBtn').addEventListener('click', () => {
-      reportGenerated = true;
       reportSnapshot = buildReportSnapshot(true);
+      reportGenerated = true;
       document.getElementById('reportStatus').textContent = `Smart ${reportSnapshot.focus} report generated successfully for ${reportSnapshot.audience}.`;
       document.getElementById('reportActionStatus').textContent = `Report snapshot locked at ${formatReportDateTime(reportSnapshot.generatedAt)}. Save PDF, Word, Excel, share, or print it now.`;
       addActivity('Compliance report updated', `Smart all-module report generated for ${reportSnapshot.audience}.`);
@@ -4680,7 +4700,7 @@
         return;
       }
       downloadReportFile(`${snapshot.filenameBase}.doc`, buildReportDocumentHtml(snapshot, 'Word'), 'application/msword;charset=utf-8');
-      document.getElementById('reportActionStatus').textContent = `Word report downloaded as ${snapshot.filenameBase}.doc.`;
+      document.getElementById('reportActionStatus').textContent = `Word-compatible report downloaded as ${snapshot.filenameBase}.doc.`;
     });
 
     document.getElementById('saveExcelReportBtn').addEventListener('click', () => {
@@ -4688,8 +4708,8 @@
       if (!snapshot) {
         return;
       }
-      downloadReportFile(`${snapshot.filenameBase}.xls`, buildExcelReportDocument(snapshot), 'application/vnd.ms-excel;charset=utf-8');
-      document.getElementById('reportActionStatus').textContent = `Excel report downloaded as ${snapshot.filenameBase}.xls.`;
+      downloadReportFile(`${snapshot.filenameBase}.xls`, buildExcelCompatibleReportDocument(snapshot), 'application/vnd.ms-excel;charset=utf-8');
+      document.getElementById('reportActionStatus').textContent = `Excel-compatible report downloaded as ${snapshot.filenameBase}.xls.`;
     });
 
     document.getElementById('shareReportBtn').addEventListener('click', async () => {
@@ -4715,7 +4735,7 @@
           return;
         }
       } catch (error) {
-        document.getElementById('reportActionStatus').textContent = `Share action could not complete: ${error.message}`;
+        document.getElementById('reportActionStatus').textContent = `Share action could not complete${error?.message ? `: ${error.message}` : '. Please try again or use the download options.'}`;
         return;
       }
 
