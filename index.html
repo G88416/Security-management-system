@@ -7,26 +7,34 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
   <style>
     :root {
-      --bg: #f8fafc;
-      --card: #ffffff;
+      --bg: #eef4ff;
+      --card: rgba(255, 255, 255, 0.92);
+      --card-strong: #ffffff;
       --text: #0f172a;
-      --text-light: #64748b;
-      --primary: #3b82f6;
-      --primary-dark: #2563eb;
+      --text-light: #52627b;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
       --danger: #ef4444;
       --warning: #f59e0b;
       --success: #10b981;
-      --border: #e2e8f0;
-      --muted: #f1f5f9;
+      --border: rgba(148, 163, 184, 0.22);
+      --muted: rgba(255, 255, 255, 0.72);
+      --shadow-lg: 0 28px 55px rgba(15, 23, 42, 0.12);
+      --shadow-md: 0 18px 35px rgba(37, 99, 235, 0.08);
+      --surface-glow: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(14, 165, 233, 0.08), rgba(16, 185, 129, 0.08));
     }
 
     [data-theme="dark"] {
-      --bg: #0f172a;
-      --card: #1e293b;
+      --bg: #020617;
+      --card: rgba(15, 23, 42, 0.9);
+      --card-strong: #0f172a;
       --text: #e2e8f0;
       --text-light: #94a3b8;
-      --border: #334155;
-      --muted: #1e293b;
+      --border: rgba(71, 85, 105, 0.6);
+      --muted: rgba(15, 23, 42, 0.82);
+      --shadow-lg: 0 28px 55px rgba(2, 6, 23, 0.5);
+      --shadow-md: 0 18px 35px rgba(37, 99, 235, 0.16);
+      --surface-glow: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(14, 165, 233, 0.12), rgba(16, 185, 129, 0.1));
     }
 
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -37,6 +45,10 @@
       min-height: 100vh;
       padding: 1rem;
       transition: all 0.3s;
+      background-image:
+        radial-gradient(circle at top left, rgba(37, 99, 235, 0.13), transparent 34%),
+        radial-gradient(circle at top right, rgba(16, 185, 129, 0.12), transparent 28%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.26), transparent 50%);
     }
 
     header {
@@ -46,6 +58,12 @@
       margin-bottom: 1.5rem;
       flex-wrap: wrap;
       gap: 1rem;
+      padding: 1.15rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: 1.25rem;
+      background: var(--surface-glow);
+      box-shadow: var(--shadow-md);
+      backdrop-filter: blur(18px);
     }
 
     h1 { font-size: 1.6rem; font-weight: 700; }
@@ -55,31 +73,40 @@
       flex-wrap: wrap;
       gap: 0.5rem;
       margin-bottom: 1.5rem;
+      padding: 0.55rem;
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      background: var(--muted);
+      box-shadow: var(--shadow-md);
+      backdrop-filter: blur(18px);
     }
 
     nav.tabs button {
-      background: var(--muted);
+      background: transparent;
       border: 1px solid var(--border);
       padding: 0.6rem 1.2rem;
-      border-radius: 0.5rem;
+      border-radius: 999px;
       cursor: pointer;
       font-weight: 500;
-      transition: all 0.2s;
+      transition: all 0.2s ease;
     }
 
     nav.tabs button.active,
     nav.tabs button:hover {
-      background: var(--primary);
+      background: linear-gradient(135deg, var(--primary), #0ea5e9);
       color: white;
       border-color: var(--primary);
+      box-shadow: 0 14px 28px rgba(37, 99, 235, 0.22);
+      transform: translateY(-1px);
     }
 
     .theme-toggle {
       background: var(--card);
       border: 1px solid var(--border);
       padding: 0.5rem 1rem;
-      border-radius: 0.5rem;
+      border-radius: 999px;
       cursor: pointer;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
     }
 
     .section { display: none; margin-bottom: 2.5rem; }
@@ -88,10 +115,11 @@
     .card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 0.75rem;
+      border-radius: 1.1rem;
       padding: 1.25rem;
       margin-bottom: 1.25rem;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      box-shadow: var(--shadow-md);
+      backdrop-filter: blur(18px);
     }
 
     .grid-2 { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
@@ -116,18 +144,21 @@
     }
 
     button.btn {
-      background: var(--primary);
+      background: linear-gradient(135deg, var(--primary), #0ea5e9);
       color: white;
       border: none;
       padding: 0.6rem 1.2rem;
-      border-radius: 0.5rem;
+      border-radius: 999px;
       cursor: pointer;
       font-weight: 600;
+      box-shadow: 0 14px 26px rgba(37, 99, 235, 0.2);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
     button.btn-danger { background: var(--danger); }
     button.btn-success { background: var(--success); }
     button.btn-small { padding: 0.45rem 0.8rem; font-size: 0.8rem; }
+    button.btn:hover { transform: translateY(-1px); box-shadow: 0 18px 30px rgba(37, 99, 235, 0.24); }
 
     .status {
       display: inline-block;
@@ -345,9 +376,10 @@
 
     .metric-item {
       border: 1px solid var(--border);
-      border-radius: 0.75rem;
+      border-radius: 1rem;
       padding: 0.9rem;
-      background: var(--bg);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent), var(--card-strong);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
     }
 
     .metric-item strong {
@@ -388,9 +420,10 @@
 
     .data-row {
       border: 1px solid var(--border);
-      border-radius: 0.75rem;
+      border-radius: 1rem;
       padding: 0.95rem;
-      background: var(--bg);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent), var(--card-strong);
+      box-shadow: var(--shadow-md);
     }
 
     .data-row h4 {
@@ -503,10 +536,11 @@
       padding: 0.55rem 0.85rem;
       border-radius: 999px;
       border: 1px solid var(--border);
-      background: var(--card);
+      background: rgba(255, 255, 255, 0.18);
       color: var(--text);
       font-size: 0.88rem;
       font-weight: 600;
+      backdrop-filter: blur(14px);
     }
 
     .portal-hero {
@@ -520,7 +554,7 @@
       border: 1px solid var(--border);
       border-radius: 1rem;
       padding: 1rem;
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(16, 185, 129, 0.08));
+      background: var(--surface-glow);
     }
 
     .hero-panel h3 {
@@ -587,10 +621,212 @@
       border: 1px solid var(--border);
       border-radius: 0.85rem;
       padding: 1rem;
-      background: var(--bg);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent), var(--card-strong);
       white-space: pre-line;
       color: var(--text-light);
       line-height: 1.55;
+    }
+
+    .dashboard-shell {
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+      background: linear-gradient(140deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.88), rgba(37, 99, 235, 0.82));
+      color: #e2e8f0;
+      border: none;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .dashboard-shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(14, 165, 233, 0.3), transparent 24%),
+        radial-gradient(circle at 85% 15%, rgba(16, 185, 129, 0.26), transparent 24%);
+      pointer-events: none;
+    }
+
+    .dashboard-shell > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .dashboard-hero {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .dashboard-hero h2 {
+      margin-bottom: 0.5rem;
+    }
+
+    .dashboard-hero p {
+      max-width: 44rem;
+      color: rgba(226, 232, 240, 0.78);
+    }
+
+    .dashboard-shell .eyebrow,
+    .dashboard-shell .session-badge {
+      color: #dbeafe;
+      border-color: rgba(191, 219, 254, 0.18);
+      background: rgba(15, 23, 42, 0.26);
+    }
+
+    .dashboard-shell .metric-item {
+      background: rgba(15, 23, 42, 0.35);
+      border-color: rgba(191, 219, 254, 0.14);
+      color: #e2e8f0;
+      box-shadow: none;
+    }
+
+    .dashboard-shell .metric-item small,
+    .dashboard-shell .metric-item div {
+      color: rgba(226, 232, 240, 0.76);
+    }
+
+    .site-summary-shell {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: minmax(240px, 1.1fr) minmax(280px, 1.4fr);
+      align-items: start;
+      margin: 1rem 0 1.1rem;
+    }
+
+    .site-summary-copy {
+      padding: 1rem;
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      background: var(--surface-glow);
+    }
+
+    .site-summary-copy p {
+      margin-top: 0.5rem;
+      color: var(--text-light);
+      line-height: 1.55;
+    }
+
+    .site-card-grid {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+
+    .site-card {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 1.15rem;
+      padding: 1.1rem;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent), var(--card-strong);
+      box-shadow: var(--shadow-md);
+    }
+
+    .site-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -20% -45% 35%;
+      height: 180px;
+      background: radial-gradient(circle, rgba(37, 99, 235, 0.12), transparent 60%);
+      pointer-events: none;
+    }
+
+    .site-card > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .site-card-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.9rem;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .site-card-header small {
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+
+    .site-badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 0.45rem;
+    }
+
+    .site-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+
+    .site-tone-success {
+      background: rgba(16, 185, 129, 0.14);
+      border-color: rgba(16, 185, 129, 0.28);
+      color: #047857;
+    }
+
+    .site-tone-warning {
+      background: rgba(245, 158, 11, 0.14);
+      border-color: rgba(245, 158, 11, 0.28);
+      color: #b45309;
+    }
+
+    .site-tone-critical {
+      background: rgba(239, 68, 68, 0.14);
+      border-color: rgba(239, 68, 68, 0.28);
+      color: #b91c1c;
+    }
+
+    .site-tone-info {
+      background: rgba(37, 99, 235, 0.12);
+      border-color: rgba(37, 99, 235, 0.24);
+      color: var(--primary-dark);
+    }
+
+    .site-kpi-row {
+      display: grid;
+      gap: 0.7rem;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      margin: 1rem 0;
+    }
+
+    .site-kpi {
+      padding: 0.8rem;
+      border-radius: 0.9rem;
+      border: 1px solid var(--border);
+      background: var(--muted);
+    }
+
+    .site-kpi small {
+      display: block;
+      color: var(--text-light);
+      margin-bottom: 0.25rem;
+    }
+
+    .site-kpi strong {
+      display: block;
+      font-size: 1rem;
+      color: var(--text);
+    }
+
+    .site-card .meta-list {
+      margin-top: 0;
+    }
+
+    .site-card .tag {
+      background: rgba(37, 99, 235, 0.08);
     }
 
     .access-note {
@@ -613,6 +849,10 @@
       nav.tabs { justify-content: center; }
       .fc .fc-toolbar {
         align-items: flex-start;
+      }
+      .dashboard-hero,
+      .site-summary-shell {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -639,6 +879,18 @@
     <button data-tab="reports">Reports</button>
     <button data-tab="platform">Roles / Stack</button>
   </nav>
+
+  <section class="card dashboard-shell">
+    <div class="dashboard-hero">
+      <div>
+        <span class="eyebrow">Command center</span>
+        <h2 id="dashboardTitle">Portfolio overview</h2>
+        <p id="dashboardNarrative">A live executive view of deployment health, response pressure, and site readiness across the platform.</p>
+      </div>
+      <span id="dashboardModeChip" class="session-badge">Live intelligence</span>
+    </div>
+    <div id="dashboardOverview" class="metric-grid"></div>
+  </section>
 
   <div id="portal" class="section active">
     <div class="card">
@@ -1020,6 +1272,14 @@
           <input id="siteSearchInput" class="search-input" type="search" placeholder="Search sites, post orders, or client notes...">
         </div>
       </div>
+      <div class="site-summary-shell">
+        <div class="site-summary-copy">
+          <span class="eyebrow">Site management</span>
+          <h3>Portfolio command board</h3>
+          <p id="sitePortfolioNarrative">Track coverage, client leadership, risk posture, and SLA pressure for every site in one operational board.</p>
+        </div>
+        <div id="siteMetrics" class="metric-grid"></div>
+      </div>
       <div id="siteList" class="data-list" style="margin-top:1rem;"></div>
     </div>
   </div>
@@ -1340,9 +1600,9 @@
     ];
 
     const sitePipeline = [
-      { id: 'SITE-ROSEBANK', name: 'Rosebank Banking Plaza', guardCount: 4, postOrders: 'Post orders draft in review', client: 'Rosebank Banking Plaza', notes: 'Client onboarding in progress', sla: 'Pending' },
-      { id: 'SITE-WATERFALL', name: 'Waterfall Distribution Hub', guardCount: 6, postOrders: 'Access plan awaiting approval', client: 'Waterfall Distribution Hub', notes: 'Warehouse escorting and perimeter coverage', sla: 'Pending' },
-      { id: 'SITE-PRETORIA', name: 'Pretoria Civic Centre', guardCount: 3, postOrders: 'Client onboarding in progress', client: 'Pretoria Civic Centre', notes: 'Government building access control', sla: 'Pending' }
+      { id: 'SITE-ROSEBANK', name: 'Rosebank Banking Plaza', guardCount: 4, postOrders: 'Post orders draft in review', client: 'Rosebank Banking Plaza', notes: 'Client onboarding in progress', sla: 'Pending', region: 'Johannesburg Central', siteLead: 'Naledi Maseko', riskLevel: 'Elevated', coverageStatus: 'Mobilisation' },
+      { id: 'SITE-WATERFALL', name: 'Waterfall Distribution Hub', guardCount: 6, postOrders: 'Access plan awaiting approval', client: 'Waterfall Distribution Hub', notes: 'Warehouse escorting and perimeter coverage', sla: 'Pending', region: 'Midrand Logistics Corridor', siteLead: 'Pieter van Wyk', riskLevel: 'Critical', coverageStatus: 'Gap to fill' },
+      { id: 'SITE-PRETORIA', name: 'Pretoria Civic Centre', guardCount: 3, postOrders: 'Client onboarding in progress', client: 'Pretoria Civic Centre', notes: 'Government building access control', sla: 'Pending', region: 'Tshwane Civic District', siteLead: 'Lungile Khumalo', riskLevel: 'Controlled', coverageStatus: 'Ready for handover' }
     ];
 
     const reliefShiftTemplates = [
@@ -1499,8 +1759,8 @@
     ];
 
     let siteData = [
-      { id: 'SITE-SANDTON', name: 'Sandton Mall', guardCount: 8, postOrders: 'Post orders v3.1', client: 'Sandton Mall Management', notes: 'Retail command centre and mall patrol coverage', sla: '98%' },
-      { id: 'SITE-MENLYN', name: 'Menlyn Corporate Park', guardCount: 5, postOrders: 'SLA compliance 98%', client: 'Menlyn Corporate Park', notes: 'Office park reception and parking patrols', sla: '98%' }
+      { id: 'SITE-SANDTON', name: 'Sandton Mall', guardCount: 8, postOrders: 'Post orders v3.1', client: 'Sandton Mall Management', notes: 'Retail command centre and mall patrol coverage', sla: '98%', region: 'Sandton Retail District', siteLead: 'Ayanda Mokoena', riskLevel: 'Elevated', coverageStatus: 'Fully staffed' },
+      { id: 'SITE-MENLYN', name: 'Menlyn Corporate Park', guardCount: 5, postOrders: 'SLA compliance 98%', client: 'Menlyn Corporate Park', notes: 'Office park reception and parking patrols', sla: '98%', region: 'Pretoria East Business Hub', siteLead: 'Zanele Pretorius', riskLevel: 'Controlled', coverageStatus: 'Mobile relief ready' }
     ];
 
     let selectedGuardId = guardData[0].id;
@@ -1695,7 +1955,11 @@
           postOrders: String(site.postOrders || site.summary || 'Post orders pending'),
           client: String(site.client || site.name || `Site ${index + 1}`),
           notes: String(site.notes || ''),
-          sla: String(site.sla || 'Pending')
+          sla: String(site.sla || 'Pending'),
+          region: String(site.region || 'Regional portfolio'),
+          siteLead: String(site.siteLead || site.client || 'Unassigned lead'),
+          riskLevel: String(site.riskLevel || 'Controlled'),
+          coverageStatus: String(site.coverageStatus || ((Number(site.guardCount || 0) > 0) ? 'Fully staffed' : 'Gap to fill'))
         };
       }
 
@@ -1709,8 +1973,51 @@
         postOrders: detailPart,
         client: namePart || `Site ${index + 1}`,
         notes: '',
-        sla: detailPart.match(SLA_PERCENTAGE_PATTERN)?.[1] || 'Pending'
+        sla: detailPart.match(SLA_PERCENTAGE_PATTERN)?.[1] || 'Pending',
+        region: 'Regional portfolio',
+        siteLead: namePart || `Site ${index + 1}`,
+        riskLevel: 'Controlled',
+        coverageStatus: Number(guardMatch?.[1] || 0) > 0 ? 'Fully staffed' : 'Gap to fill'
       };
+    }
+
+    function getSlaScore(value) {
+      const match = String(value || '').match(/(\d+(?:\.\d+)?)%/);
+      return match ? Number(match[1]) : null;
+    }
+
+    function formatAverageSla(sites) {
+      const slaValues = sites.map(site => getSlaScore(site.sla)).filter(value => Number.isFinite(value));
+      if (!slaValues.length) {
+        return 'Pending';
+      }
+      const average = slaValues.reduce((total, value) => total + value, 0) / slaValues.length;
+      return `${Math.round(average)}%`;
+    }
+
+    function getSiteRiskTone(riskLevel) {
+      const normalizedValue = String(riskLevel || '').toLowerCase();
+      if (normalizedValue.includes('critical') || normalizedValue.includes('high')) {
+        return 'critical';
+      }
+      if (normalizedValue.includes('elevated') || normalizedValue.includes('medium')) {
+        return 'warning';
+      }
+      return 'success';
+    }
+
+    function getCoverageTone(coverageStatus) {
+      const normalizedValue = String(coverageStatus || '').toLowerCase();
+      if (normalizedValue.includes('gap')) {
+        return 'critical';
+      }
+      if (normalizedValue.includes('fully')) {
+        return 'success';
+      }
+      if (normalizedValue.includes('mobile') || normalizedValue.includes('mobilisation') || normalizedValue.includes('ready')) {
+        return 'warning';
+      }
+      return 'info';
     }
 
     function buildShiftTitle(shift) {
@@ -1786,7 +2093,11 @@
         site.postOrders,
         site.client,
         site.notes,
-        site.sla
+        site.sla,
+        site.region,
+        site.siteLead,
+        site.riskLevel,
+        site.coverageStatus
       ].join(' ').toLowerCase().includes(searchValue));
     }
 
@@ -1916,6 +2227,68 @@
         : 'Admin portal activated with complete platform control across teams, sites, and reporting.';
 
       applyRoleAccess();
+      renderDashboardOverview();
+    }
+
+    function renderDashboardOverview() {
+      const overviewContainer = document.getElementById('dashboardOverview');
+      if (!overviewContainer) {
+        return;
+      }
+
+      const titleElement = document.getElementById('dashboardTitle');
+      const narrativeElement = document.getElementById('dashboardNarrative');
+      const modeChip = document.getElementById('dashboardModeChip');
+      const openIncidents = incidentData.filter(incident => incident.status !== 'Resolved');
+      const onDutyGuards = guardData.filter(guard => ['On Duty', 'Patrolling'].includes(guard.status));
+      const activeRoutes = patrolRoutes.filter(route => route.checkpoints.length);
+
+      if (currentPortalRole === 'Security Guard / Officer') {
+        const currentGuard = getCurrentPortalGuard();
+        const assignedSite = siteData.find(site => sharesLocationKeyword(site.name, currentGuard?.site || ''));
+        const route = patrolRoutes.find(entry => entry.officerId === currentGuard?.id)
+          || patrolRoutes.find(entry => sharesLocationKeyword(entry.site, currentGuard?.site || ''));
+        const nearbyIncidents = openIncidents.filter(incident => incident.guardId === currentGuard?.id || sharesLocationKeyword(incident.location, currentGuard?.site || ''));
+
+        titleElement.textContent = 'Field operations cockpit';
+        narrativeElement.textContent = `${currentGuard?.name || 'Officer'} has a tailored mobile view with shift posture, site exposure, and patrol readiness kept in sync.`;
+        modeChip.textContent = 'Guard mobile view';
+        overviewContainer.innerHTML = [
+          { label: 'Assigned site', value: assignedSite?.name || currentGuard?.site || 'Unassigned', note: assignedSite ? `${assignedSite.coverageStatus} • SLA ${assignedSite.sla}` : 'Awaiting site assignment' },
+          { label: 'Shift posture', value: currentGuard?.status || 'Standby', note: currentGuard?.shift || 'Shift not yet assigned' },
+          { label: 'Open incidents nearby', value: String(nearbyIncidents.length), note: nearbyIncidents.length ? 'Response queue in your operating zone' : 'No active incidents at your site' },
+          { label: 'Patrol readiness', value: route ? route.mode : 'Standby', note: route ? `${route.checkpoints.length} checkpoints linked to this site` : 'No route assigned yet' }
+        ].map(item => `
+          <div class="metric-item">
+            <strong>${escapeHtml(item.value)}</strong>
+            <div>${escapeHtml(item.label)}</div>
+            <small>${escapeHtml(item.note)}</small>
+          </div>
+        `).join('');
+        return;
+      }
+
+      const plannedDeployment = siteData.reduce((total, site) => total + site.guardCount, 0);
+      const criticalSites = siteData.filter(site => ['critical', 'warning'].includes(getSiteRiskTone(site.riskLevel))).length;
+      const coverageGaps = siteData.filter(site => getCoverageTone(site.coverageStatus) !== 'success').length;
+
+      titleElement.textContent = 'Executive operations dashboard';
+      narrativeElement.textContent = 'A premium command view for leadership across workforce readiness, incident pressure, SLA confidence, and site management posture.';
+      modeChip.textContent = 'Admin / Owner command';
+      overviewContainer.innerHTML = [
+        { label: 'Live client sites', value: String(siteData.length), note: `${criticalSites} site(s) require elevated attention` },
+        { label: 'Deployment plan', value: String(plannedDeployment), note: `${onDutyGuards.length} guard(s) currently active or patrolling` },
+        { label: 'Open incidents', value: String(openIncidents.length), note: `${incidentData.filter(incident => incident.status === 'Escalated').length} case(s) escalated for follow-up` },
+        { label: 'Portfolio SLA', value: formatAverageSla(siteData), note: `${coverageGaps} site(s) currently outside full staffing` },
+        { label: 'Smart patrol routes', value: String(activeRoutes.length), note: patrolProgress.active ? `${patrolProgress.site} patrol currently active` : 'Patrol engine ready to deploy' },
+        { label: 'Report readiness', value: reportGenerated ? 'Ready' : 'Live preview', note: reportGenerated ? 'Narrative locked for client reporting' : 'Analytics remain in live preview mode' }
+      ].map(item => `
+        <div class="metric-item">
+          <strong>${escapeHtml(item.value)}</strong>
+          <div>${escapeHtml(item.label)}</div>
+          <small>${escapeHtml(item.note)}</small>
+        </div>
+      `).join('');
     }
 
     function normalizeCheckpointLine(line, index) {
@@ -2098,27 +2471,81 @@
 
     function renderSitesList() {
       const siteList = document.getElementById('siteList');
+      const siteMetrics = document.getElementById('siteMetrics');
+      const sitePortfolioNarrative = document.getElementById('sitePortfolioNarrative');
       const filteredSites = getFilteredSites();
+      const totalPlannedGuards = siteData.reduce((total, site) => total + site.guardCount, 0);
+      const linkedIncidentCount = incidentData.filter(incident => siteData.some(site => sharesLocationKeyword(incident.location, site.name))).length;
+      const coverageGapCount = siteData.filter(site => getCoverageTone(site.coverageStatus) !== 'success').length;
+      const elevatedRiskCount = siteData.filter(site => ['critical', 'warning'].includes(getSiteRiskTone(site.riskLevel))).length;
 
+      if (siteMetrics) {
+        siteMetrics.innerHTML = [
+          { label: 'Client sites', value: String(siteData.length), note: `${filteredSites.length} visible with current search` },
+          { label: 'Planned deployment', value: String(totalPlannedGuards), note: 'Budgeted officers across all active sites' },
+          { label: 'Coverage watchlist', value: String(coverageGapCount), note: 'Sites currently needing relief or mobilisation' },
+          { label: 'Average SLA', value: formatAverageSla(siteData), note: `${linkedIncidentCount} incidents linked to site portfolio` }
+        ].map(item => `
+          <div class="metric-item">
+            <strong>${escapeHtml(item.value)}</strong>
+            <div>${escapeHtml(item.label)}</div>
+            <small>${escapeHtml(item.note)}</small>
+          </div>
+        `).join('');
+      }
+
+      if (sitePortfolioNarrative) {
+        sitePortfolioNarrative.textContent = `Monitor site leads, risk posture, post orders, and deployment pressure at a glance. ${elevatedRiskCount} site(s) currently sit in an elevated risk posture, while ${coverageGapCount} site(s) need staffing attention.`;
+      }
+
+      siteList.classList.toggle('site-card-grid', Boolean(filteredSites.length));
       siteList.innerHTML = filteredSites.length ? filteredSites.map(site => {
         const assignedGuards = guardData.filter(guard => sharesLocationKeyword(guard.site, site.name));
         const linkedShifts = scheduleEvents.filter(event => sharesLocationKeyword(event.siteName, site.name));
         const linkedIncidents = incidentData.filter(incident => sharesLocationKeyword(incident.location, site.name));
+        const riskTone = getSiteRiskTone(site.riskLevel);
+        const coverageTone = getCoverageTone(site.coverageStatus);
         return `
-          <div class="data-row">
-            <div class="action-row">
+          <div class="site-card">
+            <div class="site-card-header">
               <div>
+                <small>${escapeHtml(site.client)}</small>
                 <h4>${escapeHtml(site.name)}</h4>
-                <small>${escapeHtml(site.client)} • ${escapeHtml(site.guardCount)} planned guard(s) • SLA ${escapeHtml(site.sla)}</small>
+                <small>${escapeHtml(site.region)} • ${escapeHtml(site.guardCount)} planned guard(s) • SLA ${escapeHtml(site.sla)}</small>
               </div>
-              <span class="status status-patrol">${escapeHtml(site.postOrders)}</span>
+              <div class="site-badge-row">
+                <span class="site-badge site-tone-${escapeHtml(riskTone)}">${escapeHtml(site.riskLevel)} risk</span>
+                <span class="site-badge site-tone-${escapeHtml(coverageTone)}">${escapeHtml(site.coverageStatus)}</span>
+              </div>
+            </div>
+            <div class="site-kpi-row">
+              <div class="site-kpi">
+                <small>Site lead</small>
+                <strong>${escapeHtml(site.siteLead)}</strong>
+              </div>
+              <div class="site-kpi">
+                <small>Linked guards</small>
+                <strong>${escapeHtml(String(assignedGuards.length))}</strong>
+              </div>
+              <div class="site-kpi">
+                <small>Linked shifts</small>
+                <strong>${escapeHtml(String(linkedShifts.length))}</strong>
+              </div>
+              <div class="site-kpi">
+                <small>Incidents</small>
+                <strong>${escapeHtml(String(linkedIncidents.length))}</strong>
+              </div>
             </div>
             <div class="meta-list">
               <div><strong>Post orders:</strong> ${escapeHtml(site.postOrders)}</div>
               <div><strong>Notes:</strong> ${escapeHtml(site.notes || 'No additional site notes')}</div>
+              <div><strong>Coverage status:</strong> ${escapeHtml(site.coverageStatus)}</div>
               <div><strong>Linked guards:</strong> ${escapeHtml(assignedGuards.length ? assignedGuards.map(guard => guard.name).join(', ') : 'No linked guards yet')}</div>
-              <div><strong>Linked shifts:</strong> ${escapeHtml(linkedShifts.length ? `${linkedShifts.length} scheduled shift(s)` : 'No roster shifts linked yet')}</div>
-              <div><strong>Linked incidents:</strong> ${escapeHtml(linkedIncidents.length ? `${linkedIncidents.length} incident(s)` : 'No incidents linked yet')}</div>
+            </div>
+            <div class="tag-row">
+              ${linkedShifts.length ? `<span class="tag">${escapeHtml(`${linkedShifts.length} scheduled shift(s)`)}</span>` : '<span class="tag">No roster shifts linked yet</span>'}
+              ${linkedIncidents.length ? `<span class="tag">${escapeHtml(`${linkedIncidents.length} incident(s) linked`)}</span>` : '<span class="tag">No incidents linked yet</span>'}
+              <span class="tag">${escapeHtml(`SLA ${site.sla}`)}</span>
             </div>
             <div class="action-buttons">
               <button type="button" class="btn btn-small site-edit" data-site-id="${escapeHtml(site.id)}">Edit</button>
@@ -2926,7 +3353,11 @@
         postOrders: '',
         client: '',
         notes: '',
-        sla: 'Pending'
+        sla: 'Pending',
+        region: 'Regional portfolio',
+        siteLead: '',
+        riskLevel: 'Controlled',
+        coverageStatus: 'Fully staffed'
       };
     }
 
@@ -3015,8 +3446,12 @@
         fields.innerHTML = `
           <div class="form-group"><label for="modalSiteName">Site name</label><input id="modalSiteName" name="name" value="${escapeHtml(site.name)}" required></div>
           <div class="form-group"><label for="modalSiteClient">Client / manager</label><input id="modalSiteClient" name="client" value="${escapeHtml(site.client)}" required></div>
+          <div class="form-group"><label for="modalSiteRegion">Region / cluster</label><input id="modalSiteRegion" name="region" value="${escapeHtml(site.region)}" required></div>
+          <div class="form-group"><label for="modalSiteLead">Site lead</label><input id="modalSiteLead" name="siteLead" value="${escapeHtml(site.siteLead)}" required></div>
           <div class="form-group"><label for="modalSiteGuardCount">Planned guards</label><input id="modalSiteGuardCount" name="guardCount" type="number" min="0" value="${escapeHtml(site.guardCount)}"></div>
           <div class="form-group"><label for="modalSiteSla">SLA / compliance</label><input id="modalSiteSla" name="sla" value="${escapeHtml(site.sla)}"></div>
+          <div class="form-group"><label for="modalSiteRisk">Risk posture</label><select id="modalSiteRisk" name="riskLevel">${['Controlled', 'Elevated', 'Critical'].map(option => `<option ${site.riskLevel === option ? 'selected' : ''}>${escapeHtml(option)}</option>`).join('')}</select></div>
+          <div class="form-group"><label for="modalSiteCoverage">Coverage status</label><select id="modalSiteCoverage" name="coverageStatus">${['Fully staffed', 'Mobile relief ready', 'Gap to fill', 'Mobilisation', 'Ready for handover'].map(option => `<option ${site.coverageStatus === option ? 'selected' : ''}>${escapeHtml(option)}</option>`).join('')}</select></div>
           <div class="form-group" style="grid-column:1/-1;"><label for="modalSitePostOrders">Post orders</label><input id="modalSitePostOrders" name="postOrders" value="${escapeHtml(site.postOrders)}" required></div>
           <div class="form-group" style="grid-column:1/-1;"><label for="modalSiteNotes">Notes</label><textarea id="modalSiteNotes" name="notes" rows="3">${escapeHtml(site.notes || '')}</textarea></div>
         `;
@@ -3149,14 +3584,18 @@
         id: existingSite?.id || createId('SITE'),
         name: formData.get('name').toString().trim(),
         client: formData.get('client').toString().trim(),
+        region: formData.get('region').toString().trim(),
+        siteLead: formData.get('siteLead').toString().trim(),
         guardCount: Number(formData.get('guardCount') || 0),
         sla: formData.get('sla').toString().trim(),
+        riskLevel: formData.get('riskLevel').toString().trim(),
+        coverageStatus: formData.get('coverageStatus').toString().trim(),
         postOrders: formData.get('postOrders').toString().trim(),
         notes: formData.get('notes').toString().trim()
       });
 
-      if (!siteRecord.name || !siteRecord.client || !siteRecord.postOrders) {
-        setEntityModalStatus('Site name, client, and post orders are required.');
+      if (!siteRecord.name || !siteRecord.client || !siteRecord.region || !siteRecord.siteLead || !siteRecord.postOrders) {
+        setEntityModalStatus('Site name, client, region, site lead, and post orders are required.');
         return false;
       }
 
