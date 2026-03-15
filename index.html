@@ -159,6 +159,12 @@
     button.btn-success { background: var(--success); }
     button.btn-small { padding: 0.45rem 0.8rem; font-size: 0.8rem; }
     button.btn:hover { transform: translateY(-1px); box-shadow: 0 18px 30px rgba(37, 99, 235, 0.24); }
+    button.btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
 
     .status {
       display: inline-block;
@@ -1288,7 +1294,7 @@
   <div id="reports" class="section">
     <div class="card">
       <h2>Reporting & Analytics</h2>
-      <p>Dashboards, compliance reports, PDF/Excel export, and an advanced smart report generator that composes operational intelligence from live activity.</p>
+      <p>Dashboards, compliance reports, PDF export, Word/Excel-compatible downloads, sharing, printing, and an advanced smart report generator that composes operational intelligence from every live module.</p>
       <div class="action-row">
         <div class="toolbar-group">
           <select id="reportAudienceSelect" class="filter-select">
@@ -1339,6 +1345,24 @@
           <h3>Recommended actions</h3>
           <div id="reportRecommendations" class="document-list" style="margin-top:1rem;"></div>
         </div>
+      </div>
+
+      <div class="role-card" style="margin-top:1.25rem;">
+        <div class="action-row" style="align-items:flex-start;">
+          <div>
+            <h3>All-module report breakdown</h3>
+            <p class="inline-feedback" style="margin-top:0.45rem;">Generate a report to lock a snapshot from portal, guards, scheduling, leave, attendance, patrol, incidents, sites, and recent activity.</p>
+          </div>
+          <div class="toolbar-group">
+            <button id="savePdfReportBtn" type="button" class="btn btn-small" disabled>Save PDF</button>
+            <button id="saveWordReportBtn" type="button" class="btn btn-small" disabled>Save Word</button>
+            <button id="saveExcelReportBtn" type="button" class="btn btn-small" disabled>Save Excel</button>
+            <button id="shareReportBtn" type="button" class="btn btn-small" disabled>Share Report</button>
+            <button id="printReportBtn" type="button" class="btn btn-small" disabled>Print</button>
+          </div>
+        </div>
+        <span id="reportActionStatus" class="inline-feedback">Generate a report to enable PDF, Word, Excel, share, and print actions.</span>
+        <div id="reportModuleSummary" class="document-list"></div>
       </div>
 
       <div class="role-card" style="margin-top:1.25rem;">
@@ -1770,6 +1794,7 @@
     let scheduleEvents = buildCalendarEvents();
     let panicAlertActive = false;
     let reportGenerated = false;
+    let reportSnapshot = null;
     let attendanceSessions = {};
     let patrolRoutes = clonePatrolRoutes(defaultPatrolRoutes);
     let patrolProgress = { ...defaultPatrolProgress };
@@ -1888,6 +1913,14 @@
       return new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
     }
 
+    function formatReportDateTime(value = new Date()) {
+      const date = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return 'Not available';
+      }
+      return date.toLocaleString('en-ZA', { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
     function generateIncidentId() {
       const maxIncidentNumber = incidentData.reduce((highestNumber, incident) => {
         const incidentNumber = Number(String(incident.id || '').replace(/[^\d]/g, ''));
@@ -1908,6 +1941,10 @@
 
     function buildAttendanceLabel(guard) {
       return `${guard.name} – ${guard.site}`;
+    }
+
+    function getGuardNameById(guardId, fallback = guardId) {
+      return guardData.find(guard => guard.id === guardId)?.name || fallback;
     }
 
     function extractLocationKeywords(value) {
@@ -2586,37 +2623,399 @@
       renderActivityFeed();
     }
 
-    function renderReportPreview() {
-      const onDutyCount = guardData.filter(guard => ['On Duty', 'Patrolling'].includes(guard.status)).length;
-      const activeIncidentCount = incidentData.filter(incident => incident.status !== 'Resolved').length;
-      const escalatedIncidentCount = incidentData.filter(incident => incident.status === 'Escalated').length;
-      const pendingDocumentCount = guardData.reduce((total, guard) => total + guard.documents.reduce((count, document) => count + (document.state !== 'Verified' ? 1 : 0), 0), 0);
-      const scheduledShiftCount = calendar ? calendar.getEvents().length : scheduleEvents.length;
-      const pendingLeaveCount = leaveRequests.filter(request => request.status === 'Pending').length;
-      const activePatrolRoute = getSelectedPatrolRoute();
-      const routePlan = getPatrolPlan(activePatrolRoute);
+    function collectReportScheduleEntries() {
+      const events = calendar
+        ? calendar.getEvents().map(event => ({
+            title: event.title,
+            siteName: event.extendedProps?.siteName || '',
+            role: event.extendedProps?.role || '',
+            notes: event.extendedProps?.notes || '',
+            start: event.start,
+            end: event.end
+          }))
+        : scheduleEvents.map(event => ({
+            title: event.title,
+            siteName: event.siteName || '',
+            role: event.role || '',
+            notes: event.notes || '',
+            start: event.start,
+            end: event.end
+          }));
+
+      return events
+        .map(event => ({
+          ...event,
+          start: event.start ? new Date(event.start) : null,
+          end: event.end ? new Date(event.end) : null
+        }))
+        .sort((firstEvent, secondEvent) => {
+          const firstTime = firstEvent.start?.getTime() || 0;
+          const secondTime = secondEvent.start?.getTime() || 0;
+          return firstTime - secondTime;
+        });
+    }
+
+    function buildReportSnapshot(isLocked = reportGenerated) {
       const audience = document.getElementById('reportAudienceSelect')?.value || 'Admin / Owner';
       const focus = document.getElementById('reportFocusSelect')?.value || 'Operational Intelligence';
+      const generatedAt = new Date().toISOString();
+      const scheduleEntries = collectReportScheduleEntries();
+      const currentPortalGuard = getCurrentPortalGuard();
+      const onDutyGuards = guardData.filter(guard => ['On Duty', 'Patrolling'].includes(guard.status));
+      const availableGuards = guardData.filter(guard => guard.status === 'Available');
+      const activeIncidents = incidentData.filter(incident => incident.status !== 'Resolved');
+      const escalatedIncidents = incidentData.filter(incident => incident.status === 'Escalated');
+      const criticalIncidents = incidentData.filter(incident => incident.severity === 'Critical');
+      const pendingDocumentCount = guardData.reduce((total, guard) => total + guard.documents.reduce((count, document) => count + (document.state !== 'Verified' ? 1 : 0), 0), 0);
+      const pendingLeaveRequests = leaveRequests.filter(request => request.status === 'Pending');
+      const approvedLeaveRequests = leaveRequests.filter(request => request.status === 'Approved');
+      const clockedInEntries = Object.entries(attendanceSessions).filter(([, session]) => session?.clockedIn);
+      const latestAttendanceEntry = Object.entries(attendanceSessions)
+        .map(([guardId, session]) => ({
+          guardId,
+          session,
+          timestamp: session?.lastActionTime || session?.clockOutTime || session?.clockInTime || ''
+        }))
+        .filter(entry => entry.timestamp)
+        .sort((firstEntry, secondEntry) => String(secondEntry.timestamp).localeCompare(String(firstEntry.timestamp)))[0];
+      const activePatrolRoute = getSelectedPatrolRoute();
+      const routePlan = getPatrolPlan(activePatrolRoute);
+      const coverageGaps = siteData.filter(site => String(site.coverageStatus || '').toLowerCase().includes('gap')).length;
+      const nextScheduledShift = scheduleEntries.find(event => event.start && event.start >= new Date()) || scheduleEntries[0] || null;
+      const latestActivity = activityFeed[0] || null;
       const riskIndex = Math.min(
         100,
-        (activeIncidentCount * REPORT_RISK_WEIGHTS.incident) +
+        (activeIncidents.length * REPORT_RISK_WEIGHTS.incident) +
         (pendingDocumentCount * REPORT_RISK_WEIGHTS.pendingDocument) +
-        (pendingLeaveCount * REPORT_RISK_WEIGHTS.leaveRequest) +
+        (pendingLeaveRequests.length * REPORT_RISK_WEIGHTS.leaveRequest) +
         (routePlan.nextCheckpoint ? getRiskScore(routePlan.nextCheckpoint.risk) * REPORT_RISK_WEIGHTS.checkpointRisk : 0)
       );
       const operationalHealth = Math.max(0, 100 - riskIndex);
-
-      document.getElementById('reportPreview').innerHTML = [
-        { label: 'On duty now', value: `${onDutyCount}/${guardData.length}`, note: 'Guards currently working or patrolling' },
-        { label: 'Active incidents', value: String(activeIncidentCount), note: `${escalatedIncidentCount} escalated for follow-up` },
-        { label: 'Scheduled shifts', value: String(scheduledShiftCount), note: 'Visible in the current roster view' },
+      const filenameBase = sanitizeFileName(
+        `security-report-${focus.toLowerCase().replace(/[^A-Za-z0-9]+/g, '-')}-${generatedAt.slice(0, 10)}`,
+        'security-report'
+      );
+      const metricCards = [
+        { label: 'On duty now', value: `${onDutyGuards.length}/${guardData.length}`, note: 'Guards currently working or patrolling' },
+        { label: 'Active incidents', value: String(activeIncidents.length), note: `${escalatedIncidents.length} escalated for follow-up` },
+        { label: 'Scheduled shifts', value: String(scheduleEntries.length), note: nextScheduledShift ? `Next shift ${formatReportDateTime(nextScheduledShift.start)}` : 'No future shifts scheduled yet' },
         { label: 'Pending documents', value: String(pendingDocumentCount), note: 'Compliance uploads still awaiting review' },
-        { label: 'Leave queue', value: String(pendingLeaveCount), note: 'Pending leave forms awaiting approval' },
+        { label: 'Leave queue', value: String(pendingLeaveRequests.length), note: 'Pending leave forms awaiting approval' },
         { label: 'Risk index', value: `${riskIndex}/100`, note: `Smart score tuned for ${focus}` },
         { label: 'Operational health', value: `${operationalHealth}%`, note: `Audience: ${audience}` },
-        { label: 'Client sites', value: String(siteData.length), note: 'Live locations in the operating portfolio' },
-        { label: 'Report mode', value: reportGenerated ? 'Ready' : 'Preview', note: reportGenerated ? 'Summary locked for export' : 'Generate a report to refresh the narrative' }
-      ].map(item => `
+        { label: 'Client sites', value: String(siteData.length), note: `${coverageGaps} site(s) currently need staffing attention` },
+        { label: 'Attendance live', value: String(clockedInEntries.length), note: clockedInEntries.length ? 'Guards actively clocked in' : 'No guards clocked in yet' },
+        { label: 'Report mode', value: isLocked ? 'Ready' : 'Preview', note: `${isLocked ? 'Snapshot locked' : 'Live preview refreshed'} ${formatReportDateTime(generatedAt)}` }
+      ];
+      const modules = [
+        {
+          title: 'Portal & role access',
+          summary: `${currentPortalRole} access context prepared for ${audience}.`,
+          details: [
+            `Current active role: ${currentPortalRole}.`,
+            currentPortalRole === 'Security Guard / Officer'
+              ? `Guard portal context: ${currentPortalGuard?.name || 'Unknown officer'} at ${currentPortalGuard?.site || 'unassigned site'}.`
+              : 'Admin / owner portal remains active for full command visibility.',
+            `Report focus selected: ${focus}.`
+          ]
+        },
+        {
+          title: 'Guards',
+          summary: `${guardData.length} guard record(s) reviewed across readiness, shifts, and compliance.`,
+          details: [
+            `${onDutyGuards.length} guard(s) are on duty or patrolling right now.`,
+            `${availableGuards.length} guard(s) are available for relief deployment.`,
+            `${pendingDocumentCount} compliance document(s) remain pending verification.`
+          ]
+        },
+        {
+          title: 'Scheduling & rostering',
+          summary: `${scheduleEntries.length} scheduled shift(s) included in the roster snapshot.`,
+          details: [
+            nextScheduledShift ? `Next planned shift: ${nextScheduledShift.title} on ${formatReportDateTime(nextScheduledShift.start)}.` : 'No scheduled shift is currently queued.',
+            nextScheduledShift?.siteName ? `Next shift site: ${nextScheduledShift.siteName}.` : 'Shift site details are pending.',
+            `${pendingLeaveRequests.length} leave request(s) still need roster alignment.`
+          ]
+        },
+        {
+          title: 'Leave management',
+          summary: `${leaveRequests.length} leave request(s) included in the workforce planning module.`,
+          details: [
+            `${pendingLeaveRequests.length} leave request(s) remain pending approval.`,
+            `${approvedLeaveRequests.length} leave request(s) are already approved.`,
+            pendingLeaveRequests[0]
+              ? `Next pending leave: ${getGuardNameById(pendingLeaveRequests[0].guardId)} from ${pendingLeaveRequests[0].startDate} to ${pendingLeaveRequests[0].endDate}.`
+              : 'No pending leave request is waiting in the queue.'
+          ]
+        },
+        {
+          title: 'Time & attendance',
+          summary: `${clockedInEntries.length} guard(s) are currently clocked in across the attendance console.`,
+          details: [
+            latestAttendanceEntry
+              ? `Latest attendance update: ${getGuardNameById(latestAttendanceEntry.guardId)} at ${latestAttendanceEntry.timestamp}.`
+              : 'No attendance activity has been recorded yet.',
+            clockedInEntries.length
+              ? `${clockedInEntries.map(([guardId]) => getGuardNameById(guardId)).join(', ')} currently show live attendance.`
+              : 'Attendance coverage will appear here after the first clock-in.',
+            panicAlertActive ? 'An SOS panic alert is currently active and requires dispatch attention.' : 'No panic alerts are active.'
+          ]
+        },
+        {
+          title: 'Guard tour / patrol',
+          summary: `${patrolRoutes.length} patrol route(s) reviewed with smart checkpoint prioritisation.`,
+          details: [
+            patrolProgress.active ? `${activePatrolRoute?.site || 'Active site'} patrol is live.` : 'No patrol route is currently active.',
+            routePlan.nextCheckpoint
+              ? `Next smart checkpoint: ${routePlan.nextCheckpoint.name} (${routePlan.nextCheckpoint.risk}) via ${activePatrolRoute?.mode || 'configured mode'}.`
+              : 'All currently planned checkpoints are complete or waiting for route activation.',
+            patrolProgress.lastCheckpointName
+              ? `Latest checkpoint scanned: ${patrolProgress.lastCheckpointName} at ${patrolProgress.lastScanTime || 'recently'}.`
+              : 'No checkpoint scan has been recorded in the current patrol session.'
+          ]
+        },
+        {
+          title: 'Incidents',
+          summary: `${incidentData.length} incident record(s) analysed for operational risk.`,
+          details: [
+            `${activeIncidents.length} incident(s) remain open or under investigation.`,
+            `${escalatedIncidents.length} incident(s) are escalated for supervisor follow-up.`,
+            `${criticalIncidents.length} critical severity incident(s) are on record.`
+          ]
+        },
+        {
+          title: 'Sites / clients',
+          summary: `${siteData.length} active site(s) and client portfolios were included.`,
+          details: [
+            `Average SLA score across sites: ${formatAverageSla(siteData)}.`,
+            `${coverageGaps} site(s) currently show a staffing or coverage gap.`,
+            siteData[0] ? `Lead site snapshot: ${siteData[0].name} managed by ${siteData[0].siteLead}.` : 'No sites are currently configured.'
+          ]
+        },
+        {
+          title: 'Recent activity',
+          summary: `${activityFeed.length} recent activity item(s) are attached to the audit trail.`,
+          details: [
+            latestActivity ? `Latest activity: ${latestActivity.title} — ${latestActivity.detail}.` : 'No activity has been captured yet.',
+            activityFeed[1] ? `Previous activity: ${activityFeed[1].title} — ${activityFeed[1].detail}.` : 'Add another action to extend the audit trail.',
+            `Snapshot generated at ${formatReportDateTime(generatedAt)}.`
+          ]
+        }
+      ];
+      const recommendations = [
+        escalatedIncidents.length
+          ? `Escalate supervisor review for ${escalatedIncidents.length} escalated incident(s).`
+          : 'No escalated incidents currently need executive intervention.',
+        pendingDocumentCount
+          ? `Clear ${pendingDocumentCount} pending compliance document(s) before the next audit cycle.`
+          : 'Compliance documents are fully up to date across the current guard roster.',
+        pendingLeaveRequests.length || coverageGaps
+          ? `Rebalance staffing for ${pendingLeaveRequests.length} pending leave request(s) and ${coverageGaps} coverage gap site(s).`
+          : 'Staffing coverage is balanced across leave planning and site deployment.',
+        !clockedInEntries.length
+          ? 'Prompt a live clock-in check so attendance evidence is available in the next report.'
+          : `Attendance is live for ${clockedInEntries.length} guard(s); keep proof-of-presence synced.`,
+        routePlan.nextCheckpoint
+          ? `Push patrol coverage toward ${routePlan.nextCheckpoint.name} using the ${activePatrolRoute?.mode || 'configured'} sequence.`
+          : 'Start or refresh a patrol route to maintain live checkpoint visibility.'
+      ];
+      const narrative = `${focus} ${isLocked ? 'report generated' : 'live preview refreshed'} on ${formatReportDateTime(generatedAt)} for ${audience}.\n\n` +
+        `This snapshot combines every live module: portal access, guards, scheduling, leave, attendance, patrol, incidents, sites, and recent activity. ` +
+        `Operational health is ${operationalHealth}% with ${onDutyGuards.length}/${guardData.length} guards active, ${activeIncidents.length} active incident(s), ${scheduleEntries.length} scheduled shift(s), and ${pendingDocumentCount} pending compliance upload(s).\n\n` +
+        `${nextScheduledShift ? `The next rostered shift is ${nextScheduledShift.title} on ${formatReportDateTime(nextScheduledShift.start)}. ` : 'There is no queued shift in the current roster. '}` +
+        `${routePlan.nextCheckpoint ? `Patrol focus remains on ${routePlan.nextCheckpoint.name} at ${activePatrolRoute?.site || 'the active site'}. ` : 'Patrol teams have no pending smart checkpoint in the current route. '}` +
+        `${latestActivity ? `The latest recorded activity is ${latestActivity.title.toLowerCase()} with detail: ${latestActivity.detail}.` : 'No recent activity has been recorded yet.'}`;
+
+      return {
+        generatedAt,
+        audience,
+        focus,
+        metricCards,
+        modules,
+        recommendations,
+        narrative,
+        filenameBase
+      };
+    }
+
+    function getActiveReportSnapshot() {
+      if (reportGenerated && reportSnapshot) {
+        return reportSnapshot;
+      }
+      return buildReportSnapshot(false);
+    }
+
+    function buildReportPlainText(snapshot) {
+      return [
+        `Security Management Report`,
+        `Generated: ${formatReportDateTime(snapshot.generatedAt)}`,
+        `Audience: ${snapshot.audience}`,
+        `Focus: ${snapshot.focus}`,
+        '',
+        'Key metrics',
+        ...snapshot.metricCards.map(card => `- ${card.label}: ${card.value} (${card.note})`),
+        '',
+        'Narrative',
+        snapshot.narrative,
+        '',
+        'All-module breakdown',
+        ...snapshot.modules.flatMap(module => [
+          `${module.title}: ${module.summary}`,
+          ...module.details.map(detail => `  • ${detail}`)
+        ]),
+        '',
+        'Recommended actions',
+        ...snapshot.recommendations.map(item => `- ${item}`)
+      ].join('\n');
+    }
+
+    function buildReportDocumentHtml(snapshot, titleSuffix = 'Report') {
+      return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${escapeHtml(snapshot.focus)} ${escapeHtml(titleSuffix)}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 32px; color: #0f172a; }
+    h1, h2 { margin-bottom: 0.5rem; }
+    p { line-height: 1.5; white-space: pre-line; }
+    .meta { color: #475569; margin-bottom: 1.5rem; }
+    .metric-grid { display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); gap: 12px; margin: 1rem 0 1.5rem; }
+    .metric-card { border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px; background: #f8fafc; }
+    .metric-card strong { display: block; font-size: 1.1rem; margin-bottom: 0.25rem; }
+    .module-card { border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px; margin-bottom: 12px; background: #ffffff; }
+    .module-card ul { margin: 0.6rem 0 0; padding-left: 1.1rem; }
+    .recommendations { margin-top: 1.5rem; padding-left: 1.1rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; vertical-align: top; }
+    th { background: #e2e8f0; }
+  </style>
+</head>
+<body>
+  <h1>Security Management Report</h1>
+  <div class="meta">
+    <div><strong>Generated:</strong> ${escapeHtml(formatReportDateTime(snapshot.generatedAt))}</div>
+    <div><strong>Audience:</strong> ${escapeHtml(snapshot.audience)}</div>
+    <div><strong>Focus:</strong> ${escapeHtml(snapshot.focus)}</div>
+  </div>
+  <p>${escapeHtml(snapshot.narrative)}</p>
+  <div class="metric-grid">
+    ${snapshot.metricCards.map(card => `
+      <div class="metric-card">
+        <strong>${escapeHtml(card.value)}</strong>
+        <div>${escapeHtml(card.label)}</div>
+        <small>${escapeHtml(card.note)}</small>
+      </div>
+    `).join('')}
+  </div>
+  ${snapshot.modules.map(module => `
+    <section class="module-card">
+      <h2>${escapeHtml(module.title)}</h2>
+      <p>${escapeHtml(module.summary)}</p>
+      <ul>${module.details.map(detail => `<li>${escapeHtml(detail)}</li>`).join('')}</ul>
+    </section>
+  `).join('')}
+  <h2>Recommended actions</h2>
+  <ul class="recommendations">
+    ${snapshot.recommendations.map(item => `<li>${escapeHtml(item)}</li>`).join('')}
+  </ul>
+</body>
+</html>`;
+    }
+
+    function buildExcelCompatibleReportDocument(snapshot) {
+      return `<!DOCTYPE html>
+<html lang="en" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 18px; }
+    th, td { border: 1px solid #94a3b8; padding: 8px; text-align: left; vertical-align: top; }
+    th { background: #dbeafe; }
+  </style>
+</head>
+<body>
+  <table>
+    <tr><th colspan="2">Security Management Report</th></tr>
+    <tr><td>Generated</td><td>${escapeHtml(formatReportDateTime(snapshot.generatedAt))}</td></tr>
+    <tr><td>Audience</td><td>${escapeHtml(snapshot.audience)}</td></tr>
+    <tr><td>Focus</td><td>${escapeHtml(snapshot.focus)}</td></tr>
+    <tr><td>Narrative</td><td>${escapeHtml(snapshot.narrative)}</td></tr>
+  </table>
+  <table>
+    <tr><th>Metric</th><th>Value</th><th>Note</th></tr>
+    ${snapshot.metricCards.map(card => `<tr><td>${escapeHtml(card.label)}</td><td>${escapeHtml(card.value)}</td><td>${escapeHtml(card.note)}</td></tr>`).join('')}
+  </table>
+  <table>
+    <tr><th>Module</th><th>Summary</th><th>Detail</th></tr>
+    ${snapshot.modules.map(module => module.details.map((detail, index) => `
+      <tr>
+        <td>${index === 0 ? escapeHtml(module.title) : ''}</td>
+        <td>${index === 0 ? escapeHtml(module.summary) : ''}</td>
+        <td>${escapeHtml(detail)}</td>
+      </tr>
+    `).join('')).join('')}
+  </table>
+  <table>
+    <tr><th>Recommended actions</th></tr>
+    ${snapshot.recommendations.map(item => `<tr><td>${escapeHtml(item)}</td></tr>`).join('')}
+  </table>
+</body>
+</html>`;
+    }
+
+    function downloadReportFile(fileName, content, mimeType) {
+      const downloadLink = document.createElement('a');
+      const blob = new Blob([content], { type: mimeType });
+      const blobUrl = URL.createObjectURL(blob);
+      downloadLink.href = blobUrl;
+      downloadLink.download = fileName;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    }
+
+    function openPrintableReport(snapshot, mode) {
+      const reportWindow = window.open('', '_blank', 'noopener,noreferrer');
+      if (!reportWindow) {
+        document.getElementById('reportActionStatus').textContent = 'Allow pop-ups to print or save the generated report as PDF.';
+        return;
+      }
+      reportWindow.document.open();
+      reportWindow.document.write(buildReportDocumentHtml(snapshot, mode === 'pdf' ? 'PDF' : 'Print'));
+      reportWindow.document.close();
+      reportWindow.focus();
+      reportWindow.onload = () => {
+        reportWindow.print();
+      };
+    }
+
+    function getLockedReportSnapshot() {
+      if (!reportGenerated || !reportSnapshot) {
+        document.getElementById('reportActionStatus').textContent = 'Generate a smart report before exporting, sharing, or printing.';
+        return null;
+      }
+      return reportSnapshot;
+    }
+
+    function renderReportPreview() {
+      const snapshot = getActiveReportSnapshot();
+      const buttonsEnabled = reportGenerated && Boolean(reportSnapshot);
+      const audienceSelect = document.getElementById('reportAudienceSelect');
+      const focusSelect = document.getElementById('reportFocusSelect');
+
+      if (buttonsEnabled) {
+        if (Array.from(audienceSelect.options).some(option => option.value === snapshot.audience)) {
+          audienceSelect.value = snapshot.audience;
+        }
+        if (Array.from(focusSelect.options).some(option => option.value === snapshot.focus)) {
+          focusSelect.value = snapshot.focus;
+        }
+      }
+
+      document.getElementById('reportPreview').innerHTML = snapshot.metricCards.map(item => `
         <div class="metric-item">
           <strong>${escapeHtml(item.value)}</strong>
           <div>${escapeHtml(item.label)}</div>
@@ -2624,22 +3023,39 @@
         </div>
       `).join('');
 
-      document.getElementById('reportNarrative').textContent = `${focus} summary for ${audience}\n\n` +
-        `Coverage is currently ${onDutyCount}/${guardData.length} guards on duty or patrolling, with ${activeIncidentCount} active incident(s) and ${pendingLeaveCount} pending leave request(s). ` +
-        `${reportGenerated ? 'The export snapshot is locked for review.' : 'The dashboard is still in live-preview mode, so metrics update instantly.'}\n\n` +
-        `The current patrol engine is prioritising ${routePlan.nextCheckpoint ? `${routePlan.nextCheckpoint.name} (${routePlan.nextCheckpoint.risk})` : 'completed checkpoint coverage'} at ${activePatrolRoute?.site || 'the active site'}. ` +
-        `Pending compliance actions total ${pendingDocumentCount}, while roster visibility shows ${scheduledShiftCount} scheduled shift(s).`;
+      document.getElementById('reportNarrative').textContent = snapshot.narrative + (reportGenerated
+        ? '\n\nThis generated snapshot is locked for export, sharing, and printing until you refresh it.'
+        : '\n\nThe dashboard is currently showing a live preview. Generate the report to lock the latest all-module snapshot.');
 
-      document.getElementById('reportRecommendations').innerHTML = [
-        `${escalatedIncidentCount ? `Escalate supervisor review for ${escalatedIncidentCount} escalated incident(s).` : 'No escalated incidents currently need executive intervention.'}`,
-        `${pendingLeaveCount ? `Approve or re-plan ${pendingLeaveCount} leave request(s) before the next roster publish.` : 'Leave pipeline is stable with no pending approvals.'}`,
-        `${routePlan.nextCheckpoint ? `Push the patrol team toward ${routePlan.nextCheckpoint.name} using the ${activePatrolRoute.mode} sequence.` : 'All active route checkpoints are complete; create a new route to maintain visibility.'}`
-      ].map(item => `
+      document.getElementById('reportRecommendations').innerHTML = snapshot.recommendations.map(item => `
         <div class="document-item">
           <strong>Recommendation</strong>
           <small>${escapeHtml(item)}</small>
         </div>
       `).join('');
+
+      document.getElementById('reportModuleSummary').innerHTML = snapshot.modules.map(module => `
+        <div class="document-item">
+          <strong>${escapeHtml(module.title)}</strong>
+          <small>${escapeHtml(module.summary)}</small>
+          ${module.details.map(detail => `<small>${escapeHtml(detail)}</small>`).join('')}
+        </div>
+      `).join('');
+
+      ['savePdfReportBtn', 'saveWordReportBtn', 'saveExcelReportBtn', 'shareReportBtn', 'printReportBtn'].forEach(buttonId => {
+        const button = document.getElementById(buttonId);
+        if (button) {
+          button.disabled = !buttonsEnabled;
+        }
+      });
+
+      document.getElementById('reportStatus').textContent = buttonsEnabled
+        ? `Smart ${snapshot.focus} report generated successfully for ${snapshot.audience}.`
+        : 'Generate a compliance snapshot for client reporting.';
+
+      document.getElementById('reportActionStatus').textContent = buttonsEnabled
+        ? `Report snapshot generated at ${formatReportDateTime(snapshot.generatedAt)}. Choose Save PDF, Word, Excel, Share Report, or Print.`
+        : 'Generate a report to enable PDF, Word, Excel, share, and print actions.';
     }
 
     function renderPatrolState() {
@@ -2930,6 +3346,7 @@
         })),
         panicAlertActive,
         reportGenerated,
+        reportSnapshot,
         attendanceSessions,
         patrolProgress,
         activityFeed,
@@ -2976,6 +3393,7 @@
 
       panicAlertActive = Boolean(state.panicAlertActive);
       reportGenerated = Boolean(state.reportGenerated);
+      reportSnapshot = state.reportSnapshot && typeof state.reportSnapshot === 'object' ? state.reportSnapshot : null;
       attendanceSessions = state.attendanceSessions && typeof state.attendanceSessions === 'object' ? state.attendanceSessions : {};
       selectedPatrolRouteId = typeof state.selectedPatrolRouteId === 'string' ? state.selectedPatrolRouteId : selectedPatrolRouteId;
       patrolProgress = state.patrolProgress && typeof state.patrolProgress === 'object'
@@ -3997,9 +4415,11 @@
 
     document.getElementById('publishRosterBtn').addEventListener('click', () => {
       ensureCalendar();
+      reportSnapshot = buildReportSnapshot(true);
       reportGenerated = true;
       document.getElementById('scheduleFeedback').textContent = `Roster published with ${calendar ? calendar.getEvents().length : scheduleEvents.length} scheduled shift(s).`;
       document.getElementById('reportStatus').textContent = 'Roster publish summary pushed into the live compliance snapshot.';
+      document.getElementById('reportActionStatus').textContent = `Roster publish refreshed the generated snapshot at ${formatReportDateTime(reportSnapshot.generatedAt)}.`;
       addActivity('Roster published', `${calendar ? calendar.getEvents().length : scheduleEvents.length} shifts prepared for team distribution.`);
       renderReportPreview();
       saveDashboardState();
@@ -4036,12 +4456,14 @@
         showTab('portal');
       }
       renderPortalState();
+      renderReportPreview();
       saveDashboardState();
     });
     document.getElementById('portalGuardSelect').addEventListener('change', event => {
       currentPortalGuardId = event.target.value;
       document.getElementById('leaveGuardSelect').value = currentPortalGuardId;
       renderPortalState();
+      renderReportPreview();
       saveDashboardState();
     });
     document.getElementById('portalLoginForm').addEventListener('submit', event => {
@@ -4254,15 +4676,80 @@
     });
 
     document.getElementById('generateReportBtn').addEventListener('click', () => {
-      reportGenerated = !reportGenerated;
-      document.getElementById('reportStatus').textContent = reportGenerated
-        ? `Smart ${document.getElementById('reportFocusSelect').value} report generated successfully for ${document.getElementById('reportAudienceSelect').value}.`
-        : 'Smart report switched back to live preview mode.';
-      addActivity('Compliance report updated', reportGenerated
-        ? `Smart report generated for ${document.getElementById('reportAudienceSelect').value}.`
-        : 'Compliance report returned to live preview mode.');
+      reportSnapshot = buildReportSnapshot(true);
+      reportGenerated = true;
+      document.getElementById('reportStatus').textContent = `Smart ${reportSnapshot.focus} report generated successfully for ${reportSnapshot.audience}.`;
+      document.getElementById('reportActionStatus').textContent = `Report snapshot locked at ${formatReportDateTime(reportSnapshot.generatedAt)}. Save PDF, Word, Excel, share, or print it now.`;
+      addActivity('Compliance report updated', `Smart all-module report generated for ${reportSnapshot.audience}.`);
       renderReportPreview();
       saveDashboardState();
+    });
+
+    document.getElementById('savePdfReportBtn').addEventListener('click', () => {
+      const snapshot = getLockedReportSnapshot();
+      if (!snapshot) {
+        return;
+      }
+      document.getElementById('reportActionStatus').textContent = 'Print dialog opened. Choose “Save as PDF” in your browser destination list.';
+      openPrintableReport(snapshot, 'pdf');
+    });
+
+    document.getElementById('saveWordReportBtn').addEventListener('click', () => {
+      const snapshot = getLockedReportSnapshot();
+      if (!snapshot) {
+        return;
+      }
+      downloadReportFile(`${snapshot.filenameBase}.doc`, buildReportDocumentHtml(snapshot, 'Word'), 'application/msword;charset=utf-8');
+      document.getElementById('reportActionStatus').textContent = `Word-compatible report downloaded as ${snapshot.filenameBase}.doc.`;
+    });
+
+    document.getElementById('saveExcelReportBtn').addEventListener('click', () => {
+      const snapshot = getLockedReportSnapshot();
+      if (!snapshot) {
+        return;
+      }
+      downloadReportFile(`${snapshot.filenameBase}.xls`, buildExcelCompatibleReportDocument(snapshot), 'application/vnd.ms-excel;charset=utf-8');
+      document.getElementById('reportActionStatus').textContent = `Excel-compatible report downloaded as ${snapshot.filenameBase}.xls.`;
+    });
+
+    document.getElementById('shareReportBtn').addEventListener('click', async () => {
+      const snapshot = getLockedReportSnapshot();
+      if (!snapshot) {
+        return;
+      }
+      const sharePayload = {
+        title: `Security Management Report • ${snapshot.focus}`,
+        text: buildReportPlainText(snapshot)
+      };
+
+      try {
+        if (navigator.share) {
+          await navigator.share(sharePayload);
+          document.getElementById('reportActionStatus').textContent = 'Report share sheet opened successfully.';
+          return;
+        }
+
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(sharePayload.text);
+          document.getElementById('reportActionStatus').textContent = 'Share text copied to the clipboard. Paste it into email, chat, or WhatsApp.';
+          return;
+        }
+      } catch (error) {
+        document.getElementById('reportActionStatus').textContent = `Share action could not complete${error?.message ? `: ${error.message}` : '. Please try again or use the download options.'}`;
+        return;
+      }
+
+      downloadReportFile(`${snapshot.filenameBase}.txt`, sharePayload.text, 'text/plain;charset=utf-8');
+      document.getElementById('reportActionStatus').textContent = `Sharing is not supported here, so a text copy was downloaded as ${snapshot.filenameBase}.txt.`;
+    });
+
+    document.getElementById('printReportBtn').addEventListener('click', () => {
+      const snapshot = getLockedReportSnapshot();
+      if (!snapshot) {
+        return;
+      }
+      document.getElementById('reportActionStatus').textContent = 'Print dialog opened for the generated all-module report.';
+      openPrintableReport(snapshot, 'print');
     });
 
     document.getElementById('connectFirebaseBtn').addEventListener('click', () => {
